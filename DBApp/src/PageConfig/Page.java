@@ -7,10 +7,8 @@ public class Page implements Serializable {
 	
 	Vector<Object> PageVector; 
 	
-	transient int  MaxNumberOfRows = 200;
+	transient int  capacity = 2;
 	
-	
-
 	public Page() {
 		
 		PageVector = new Vector<Object>();
