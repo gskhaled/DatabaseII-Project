@@ -1,52 +1,52 @@
 package PageConfig;
-import java.io.Serializable;
-import java.util.ArrayList;
+
+import java.io.*;
 import java.util.Vector;
 
+@SuppressWarnings("serial")
 public class Page implements Serializable {
-	
-	Vector<Object> PageVector; 
-	
-	transient int  MaxNumberOfRows = 200;
-	
-	
 
-	public Page() {
-		
-		PageVector = new Vector<Object>();
-		
+	Vector<Tuple> tuples;
+	int capacity;
+	File file; // the file the page points to
+
+	public Page(int num) {
+		this.tuples = new Vector<Tuple>();
+		this.capacity = 0;
+
+		// every time I create a new page, I need to create a new file to reflect this
+		this.file = new File(Table.getName() + "/file " + num);
 	}
-	
-	public void CreateNewDirectory() {
-		
-		
-		
+
+	public boolean isFull() {
+		return capacity >= 2;
 	}
-	
-	public void CreateNewFile() {
-		
-		
-		
+
+	public void addContentToPage(Tuple t) {
+		this.tuples.addElement(t);
+		this.capacity++;
+
+		// I also need to write the supplied tuple to the respective file
+		try {
+			FileOutputStream fileOut = new FileOutputStream(this.file);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			System.out.println("adding page to: " + this.file.getName() + '\n');
+			out.writeObject(this);
+			out.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
-	
-	public void AddContentToPage() {
-		
-		
-		
-	}
-	
+
 	public void DeleteContentFromPage() {
-		
-		
-		
+
 	}
-	
+
 	public void UpdateContentInPage() {
-		
-		
-		
+
 	}
-	
+
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
