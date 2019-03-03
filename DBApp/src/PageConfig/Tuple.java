@@ -1,19 +1,13 @@
 package PageConfig;
-import java.util.ArrayList;
+import java.io.Serializable;
+import java.util.Vector;
 
-public class Tuple {
+public class Tuple implements Serializable {
 	
-	ArrayList<Attribute> TupleArray;
+	Vector<Attribute> attributes;
 	
-	public Tuple() {
-		
-		TupleArray = new ArrayList<Attribute>();
-		
-	}
-	
-	public void AddContent(Attribute Attribute) {
-		
-		TupleArray.add(Attribute);
+	public Tuple(Vector<Attribute> at) {
+		this.attributes = at;
 	}
 
 }

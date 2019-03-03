@@ -1,43 +1,34 @@
 package PageConfig;
 
-public class Attribute {
+import java.io.Serializable;
 
-	String AttributeName;
+@SuppressWarnings("rawtypes")
+public class Attribute implements Serializable {
 
-	Object AttributeValue;
-
-	Class AttributeType;
+	String name;
+	Object value;
+	Class type;
 
 	public Attribute(String AttributeName, Object AttributeValue) {
-
-		this.AttributeName = AttributeName;
-
-		this.AttributeType = AttributeValue.getClass();
-
-		this.AttributeValue = AttributeValue;
-
+		this.name = AttributeName;
+		this.value = AttributeValue;
+		this.type = AttributeValue.getClass();
 	}
 
 	public void UpdateAttribute(String AttributeName, Object AttributeValue) {
-
 		if (AttributeName != null) {
-
-			this.AttributeName = AttributeName;
+			this.name = AttributeName;
 		}
 
 		if (AttributeValue != null) {
-
-			this.AttributeValue = AttributeValue;
+			this.value = AttributeValue;
 		}
-		
-		this.AttributeType = AttributeValue.getClass();
-
+	
+		this.type = AttributeValue.getClass();
 	}
 
 	public void EmptyAttribute() {
-
-		this.AttributeValue = null;
-
+		this.value = null;
 	}
 
 }
