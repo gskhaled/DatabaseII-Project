@@ -12,6 +12,10 @@ public class Table {
 	Vector<Page> pages;
 	int numOfPages;
 
+	public static String getName() {
+		return tableName;
+	}
+
 	public static Vector<Attribute> getAttributeVector(Hashtable<String, Object> ht) {
 		Set<String> keys = ht.keySet();
 		// vector set of attributes
@@ -20,6 +24,30 @@ public class Table {
 			toFill.addElement(new Attribute(k, ht.get(k)));
 
 		return toFill;
+	}
+
+	public static boolean equals(Vector<Attribute> first, Vector<Attribute> second) {
+		for (int i = 0; i < first.size(); i++) {
+			for (int j = 0; j < second.size(); j++)
+				if (first.get(i).name.equals(second.get(j).name))
+					if (!first.get(i).value.equals(second.get(j).value))
+						return false;
+		}
+		return true;
+	}
+
+	public static Object deSerialization(File file) {
+		try {
+			FileInputStream fileInputStream = new FileInputStream(file);
+			BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+			ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
+			Object object = objectInputStream.readObject();
+			objectInputStream.close();
+			return object;
+		} catch (ClassNotFoundException | IOException e) {
+			System.out.println("Error in deSerialization......");
+		}
+		return null;
 	}
 
 	public static String getDirectoryPath() {
@@ -52,10 +80,6 @@ public class Table {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public static String getName() {
-		return tableName;
 	}
 
 	public void insert(String tableName, Hashtable<String, Object> ht) {
@@ -94,28 +118,6 @@ public class Table {
 		}
 	}
 
-	public static Object deSerialization(File file) {
-		try {
-			FileInputStream fileInputStream = new FileInputStream(file);
-			BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
-			ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
-			Object object = objectInputStream.readObject();
-			objectInputStream.close();
-			return object;
-		} catch (ClassNotFoundException | IOException e) {
-			System.out.println("Error in deSerialization......");
-		}
-		return null;
-	}
-
-	public static boolean equals(Vector<Attribute> first, Vector<Attribute> second) {
-		for (int i = 0; i < first.size(); i++) {
-			if (!first.get(i).value.equals(second.get(i).value))
-				return false;
-		}
-		return true;
-	}
-
 	public void delete(String tableName, Hashtable<String, Object> ht) {
 		Vector<Attribute> toDelete = getAttributeVector(ht);
 		File dir = new File(getDirectoryPath() + "/" + getName());
@@ -125,9 +127,38 @@ public class Table {
 				Page p = (Page) deSerialization(file);
 				for (int i = 0; i < p.getTuples().size(); i++) {
 					Tuple t = p.getTuples().get(i);
-					if (equals(toDelete, t.getAttributes()))
+					if (equals(toDelete, t.getAttributes())) {
 						p.deleteContentFromPage(i);
+						System.out.println("delete accomplished");
+					}
 				}
 			}
 	}
+
+	public void update(String name, String keyValue, Hashtable<String, Object> ht) {
+		Vector<Attribute> updated = getAttributeVector(ht);
+		File dir = new File(getDirectoryPath() + "/" + getName());
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (!file.getName().equals("metadata.csv")) {
+				Page p = (Page) deSerialization(file);
+				// for loop over the vector of TUPLES in the page
+				for (int i = 0; i < p.getTuples().size(); i++) {
+					Tuple tuple = p.getTuples().get(i);
+					Vector<Attribute> attributeVector = tuple.getAttributes();
+					for (int j = 0; j < attributeVector.size(); j++)
+						// FOUND the key of this tuple
+						if (attributeVector.get(j).name.equals(key)) {
+							String m = attributeVector.get(j).value.toString();
+							if (m.equals(keyValue)) {
+								System.out.println("you should update now");
+								tuple.updateTuple(updated);
+								p.writePageFile();
+							}
+						}
+				}
+			}
+	}
+
+	
 }

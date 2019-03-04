@@ -18,6 +18,10 @@ public class DBApp {
 		table.delete(tableName, ht);
 	}
 
+	public static void updateTable(String tableName, String key, Hashtable<String, Object> ht) {
+		table.update(tableName, key, ht);
+	}
+
 	public static void main(String[] args) {
 
 		String key = "id";
@@ -56,13 +60,16 @@ public class DBApp {
 
 		// htblColNameValue.clear();
 		// htblColNameValue.put("id", new Integer(23498));
-		// htblColNameValue.put("name", new String("John Noor"));
 		// deleteFromTable(strTableName, htblColNameValue);
-		//
+		 
 		// htblColNameValue.clear();
 		// htblColNameValue.put("id", new Integer(5674567));
-		// htblColNameValue.put("name", new String("Dalia Noor"));
 		// deleteFromTable(strTableName, htblColNameValue);
+
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(5674567));
+		// htblColNameValue.put("name", new String("UPDATED NOOR"));
+		// updateTable(strTableName, "5674567", htblColNameValue);
 
 	}
 }
