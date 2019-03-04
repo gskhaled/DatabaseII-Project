@@ -1,4 +1,4 @@
-package PageConfig;
+package team_1;
 
 import java.io.*;
 import java.util.Vector;
@@ -10,12 +10,14 @@ public class Page implements Serializable {
 	int capacity;
 	File file; // the file the page points to
 
+	int id;
+
 	public Page(int num) {
 		this.tuples = new Vector<Tuple>();
 		this.capacity = 0;
-
+		this.id = num;
 		// every time I create a new page, I need to create a new file to reflect this
-		this.file = new File(Table.getName() + "/file " + num);
+		this.file = new File(Table.getName() + "/file " + id);
 	}
 
 	public boolean isFull() {
@@ -51,7 +53,7 @@ public class Page implements Serializable {
 		this.capacity--;
 		if (capacity == 0) {
 			this.file.delete();
-			System.out.println(".......................a file has been deleted");
+			//System.out.println(".......................a file has been deleted");
 		} else
 			writePageFile();
 	}
@@ -59,12 +61,44 @@ public class Page implements Serializable {
 	public void deleteContentFromPageWithout(int i) {
 		getTuples().remove(i);
 		this.capacity--;
-		System.out.println(".......................a file has NOT been deleted");
+		//System.out.println(".......................a file has NOT been deleted");
 	}
 
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
+//	 public Tuple getMaxTill(Vector<Tuple> v, int limit, String key) {
+//		 Tuple maxSoFar = v.get(0);
+//		 int i = 0;
+//		 while (i < limit) {
+//			 for (int j = 0; j < v.get(i).getAttributes().size(); j++) {
+//				 Attribute a = v.get(i).getAttributes().get(j);
+//				 Attribute b = v.g
+//			 }
+//		 }
+//	
+//	 }
+//	
+//	 public Page sortPage(Page p, int id, String key) {
+//		 Vector<Tuple> v = new Vector<Tuple>();
+//		 for (Tuple t : p.getTuples()) {
+//			 int i;
+//		 }
+//	
+//	 }
 
-	}
+//	public void setID(int id) {
+//		this.id = id;
+//		this.file.renameTo(new File(Table.getName() + "/file " + id));
+//	}
+//
+//	public void setTemp() {
+//		this.file.renameTo(new File(Table.getName() + "/file temp"));
+//	}
+//
+//	public void swapID(Page p) {
+//		int this_id = this.id;
+//		int p_id = p.id;
+//		this.setTemp();
+//		p.setID(this_id);
+//		this.setID(p_id);
+//	}
 
 }

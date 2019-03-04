@@ -1,4 +1,4 @@
-package PageConfig;
+package team_1;
 
 import java.util.*;
 
@@ -11,22 +11,29 @@ public class DBApp {
 	}
 
 	public static void insertIntoTable(String tableName, Hashtable<String, Object> ht) {
-		table.newInsert(tableName, ht);
+		table.insert(tableName, ht);
+		table.writePageFile();
 	}
 
 	public static void deleteFromTable(String tableName, Hashtable<String, Object> ht) {
 		table.delete(tableName, ht);
+		table.writePageFile();
 	}
 
 	public static void updateTable(String tableName, String key, Hashtable<String, Object> ht) {
 		table.update(tableName, key, ht);
+		table.writePageFile();
 	}
 	
 	public static void printTable() {
-		for (Page p : table.pages)
-			for (Tuple t : p.getTuples())
-				for (int i = 0; i < t.getAttributes().size(); i++)
-					System.out.println(t.getAttributes().get(i).value);
+		for (int e = 0; e<table.pages.size(); e++) {
+			Page p = table.pages.get(e);
+			System.out.println("I am now in page #: " + p.id);
+			for (int r = 0; r<p.tuples.size(); r++) {
+				Tuple t = p.tuples.get(r);
+				System.out.println(t.getAttributes().get(1).value);
+			}
+		}
 	}
 
 	public static void main(String[] args) {

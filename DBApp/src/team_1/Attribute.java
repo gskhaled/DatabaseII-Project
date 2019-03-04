@@ -1,4 +1,4 @@
-package PageConfig;
+package team_1;
 
 import java.io.Serializable;
 
@@ -15,20 +15,14 @@ public class Attribute implements Serializable {
 		this.type = AttributeValue.getClass();
 	}
 
-	public void UpdateAttribute(String AttributeName, Object AttributeValue) {
-		if (AttributeName != null) {
-			this.name = AttributeName;
-		}
-
-		if (AttributeValue != null) {
-			this.value = AttributeValue;
-		}
-	
-		this.type = AttributeValue.getClass();
-	}
-
-	public void EmptyAttribute() {
-		this.value = null;
-	}
+//	public boolean compare(Attribute a, String key) {
+//		if (a.name.equals(key) && a.name.equals(key)) {
+//			Integer x = (Integer) value;
+//			Integer y = (Integer) a.value;
+//			if (x > y)
+//				return true;
+//		}
+//		return false;
+//	}
 
 }
