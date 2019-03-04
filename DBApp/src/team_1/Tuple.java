@@ -1,4 +1,4 @@
-package PageConfig;
+package team_1;
 
 import java.io.Serializable;
 import java.util.Vector;

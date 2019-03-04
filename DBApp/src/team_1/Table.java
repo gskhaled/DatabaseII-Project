@@ -1,16 +1,33 @@
-package PageConfig;
+package team_1;
 
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class Table {
+@SuppressWarnings("serial")
+public class Table implements Serializable{
 
 	static String tableName;
 	static String key;
-	Vector<Page> pages;
-	int numOfPages;
+	transient Vector<Page> pages;
+	File file; //the file the table points to
+	
+	public void writePageFile() {
+		try {
+			FileOutputStream fileOut = new FileOutputStream(this.file);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			System.out.println("writing page to: " + this.file.getName());
+			out.writeObject(this);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public int getNumberOfPages() {
+		return pages.size();
+	}
 
 	public static String getName() {
 		return tableName;
@@ -69,11 +86,16 @@ public class Table {
 		Table.key = key;
 		this.pages = new Vector<Page>();
 
-		// create a directory (folder) with the given name inside the current local path
-		new File(getDirectoryPath() + "/" + name).mkdir();
+		// create a directory (folder) with the name "DATA" inside the current local path
+		new File(getDirectoryPath() + "/data").mkdir();
 
 		// create metadata.csv
-		File file = new File(name + "/metadata.csv");
+		File file = new File("data/metadata.csv");
+		
+		File file2 = new File(name);
+		
+		//initialise the file the table points to INSIDE DATA Folder
+		this.file = new File("data/" + name);
 
 		// write into the metadata.csv file the required info
 		try {
@@ -91,63 +113,26 @@ public class Table {
 		}
 	}
 
-	// public void insert(String tableName, Hashtable<String, Object> ht) {
-	// Vector<Attribute> toFill = getAttributeVector(ht);
-	//
-	// Page latestPage;
-	// // initially, pages would be empty, so I add one page
-	// if (pages.isEmpty()) {
-	// this.numOfPages = 1;
-	// this.pages.addElement(new Page(1));
-	// System.out.println("added a page because pageS was empty! called it 1");
-	// latestPage = this.pages.get(0);
-	// }
-	// // otherwise I get the latest page to see if it has space
-	// else {
-	// int size = pages.size();
-	// // getting the last page in the pages vector
-	// latestPage = pages.get(size - 1);
-	// }
-	//
-	// // whether the last page still has space
-	// if (!latestPage.isFull()) {
-	// System.out.println("found space in page number: " + numOfPages + " so
-	// inserting here");
-	// Tuple tuple = new Tuple(toFill);
-	// latestPage.addContentToPage(tuple);
-	// }
-	// // means last page is full, so we make a new one, then add to it the tuple
-	// else {
-	// this.numOfPages++;
-	// System.out.println("last page was full so i made a new one and numbered it: "
-	// + numOfPages
-	// + " ..then added tuple to it");
-	// Page page = new Page(numOfPages);
-	// Tuple tuple = new Tuple(toFill);
-	// page.addContentToPage(tuple);
-	// pages.addElement(page);
-	// }
-	// }
-
-	public void newInsert(String tableName, Hashtable<String, Object> ht) {
+	public void insert(String tableName, Hashtable<String, Object> ht) {
 		Vector<Attribute> toFill = getAttributeVector(ht);
 		Tuple tuple = new Tuple(toFill);
 
 		// initially - first time to insert. create page and just insert into it
 		if (pages.isEmpty()) {
-			Page newPage = new Page(1);
+			Page newPage = new Page(getNumberOfPages() + 1);
 			newPage.addContentToPage(tuple);
-			this.numOfPages = 1;
 			this.pages.addElement(newPage);
-			System.out.println("added a page because pageS was empty! called it: " + numOfPages);
+			System.out.println("added a page because pageS was empty! called it: " +
+			getNumberOfPages());
 			System.out.println("inserted: " + tuple.getAttributes().get(1).value + '\n');
 			return;
 		}
 
 		// i -> page counter
 		int i;
+		System.out.println("I have: " + pages.size() + " pages");
 		for (i = 0; i < pages.size(); i++) {
-			System.out.println("inside pages loop.... " + numOfPages);
+			System.out.println("inside pages loop.... " + getNumberOfPages() + " & i now is: " + i);
 			Page currentPage = pages.get(i);
 			Vector<Tuple> tuplesInPage = currentPage.getTuples();
 			int j = 0; // represents which tuple IN the page
@@ -156,35 +141,46 @@ public class Table {
 				Integer valueInPage = (Integer) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
 				Integer insertionValue = (Integer) toFill.get(keyIndex).value;
 				System.out.println(
-						"valueInPage: " + valueInPage + " ...................insertionValue: " + insertionValue);
+				"valueInPage: " + valueInPage + " ................... insertionValue: " +
+				insertionValue);
 				if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
 					System.out.println("found the page to insert in!!!!!!!!!!!!!!");
 					if (currentPage.isFull()) { // current page is full so I need to create a new one
-						System.out.println("creating a new page because this one was full...." + '\n');
-						numOfPages++;
-						Page newPage = new Page(numOfPages);
-						// add the tuple in a New Page
-						System.out.print(" wrote this to the newly created page: " + tuple.attributes.get(1).value + " ");
+						System.out.println("creating a new page because this one was full...." +
+					    '\n');
+						Page newPage = new Page(getNumberOfPages() + 1);
+						 //add the tuple in a New Page
+						System.out.print("wrote this to the newly created page: " +
+						tuple.attributes.get(1).value + " ");
 						newPage.addContentToPage(tuple);
 						int w = j;
-						// add the rest of the tuples that came after it
+						//add the rest of the tuples that came after it
 						while (w < tuplesInPage.size() && !newPage.isFull()) {
-							System.out.print(" wrote this to the page INSIDE WHILE LOOP: "
-									+ tuplesInPage.get(w).attributes.get(1).value + " ");
+							System.out.println("W value became: " + w + "xxxxxxxxxxxxxxxxxxxxxxxxx");
+							System.out.print("wrote this to the page INSIDE WHILE LOOP: " + tuplesInPage.get(w).attributes.get(1).value + " ");
 							newPage.addContentToPage(tuplesInPage.get(w));
 							currentPage.deleteContentFromPage(w);
 							w++;
 						}
-						pages.add(i, newPage);
-						System.out.println();
+						// if j was 0, this means I needed to add the new page in the index BEFORE the
+						// current page
+						// otherwise I will add the new page in the next index relative to the current
+						// page
+						if (j == 0)
+							pages.add(i, newPage);
+						else
+							pages.add(i + 1, newPage);
+						// newPage.swapID(currentPage);
+						System.out.println("----------------------------------------------------------------------------------------------------");
 						return;
 					}
 					// the current page has space, so i'll insert into it
 					else {
-						System.out.println("found space so inserting in page: " + numOfPages);
+						System.out.println("found space so inserting in page: " +
+						getNumberOfPages());
 						Vector<Tuple> temp = new Vector<Tuple>();
 						int w = j;
-						// remove the content so I can insert before it
+						// remove the contents so I can insert the given tuple before them
 						while (w < tuplesInPage.size()) {
 							temp.add(tuplesInPage.get(w));
 							if (tuplesInPage.size() == 1)
@@ -194,10 +190,10 @@ public class Table {
 						}
 						// add the inserted tuple
 						currentPage.addContentToPage(tuple);
-						// readd the removed tuples
+						// re-add the removed tuples
 						for (Tuple t : temp)
 							currentPage.addContentToPage(t);
-						System.out.println();
+						System.out.println("----------------------------------------------------------------------------------------------------");
 						return;
 					}
 				}
@@ -207,17 +203,19 @@ public class Table {
 		// if the element to be inserted is the BIGGEST element, I have to add it at the
 		// end
 		if (i == pages.size()) {
-			System.out.println("Added At the END!!" + '\n');
+			System.out.println("Add At the END!!" + '\n');
 			Page lastPage = pages.get(i - 1);
 			if (lastPage.isFull()) {
 				System.out.println("creating a new page AT THE END because this one was full....");
-				numOfPages++;
-				Page newPage = new Page(numOfPages);
+				Page newPage = new Page(getNumberOfPages() + 1);
 				newPage.addContentToPage(tuple);
-				pages.add(i, newPage);
-				System.out.println("addition at the end completed successfully@@@@@@");
+				// newPage.swapID(lastPage);
+				pages.add(newPage);
+				System.out.println("@@@@@@@@addition at the end completed successfully@@@@@@");
+				System.out.println("----------------------------------------------------------------------------------------------------");
 			} else {
 				lastPage.addContentToPage(tuple);
+				System.out.println("----------------------------------------------------------------------------------------------------");
 			}
 		}
 	}
@@ -264,4 +262,41 @@ public class Table {
 			}
 	}
 
+//	public void insert2(String tableName, Hashtable<String, Object> ht) {
+//		Vector<Attribute> toFill = getAttributeVector(ht);
+//	
+//		 Page latestPage;
+//		 // initially, pages would be empty, so I add one page
+//		 if (pages.isEmpty()) {
+//			 this.numOfPages = 1;
+//			 this.pages.addElement(new Page(1));
+//			 System.out.println("added a page because pageS was empty! called it 1");
+//			 latestPage = this.pages.get(0);
+//		 }
+//		 // otherwise I get the latest page to see if it has space
+//		 else {
+//			 int size = pages.size();
+//			 // getting the last page in the pages vector
+//			 latestPage = pages.get(size - 1);
+//		 }
+//		
+//		 // whether the last page still has space
+//		 if (!latestPage.isFull()) {
+//			 System.out.println("found space in page number: " + numOfPages + " so
+//			 inserting here");
+//			 Tuple tuple = new Tuple(toFill);
+//			 latestPage.addContentToPage(tuple);
+//		 }
+//		 // means last page is full, so we make a new one, then add to it the tuple
+//		 else {
+//			 this.numOfPages++;
+//			 System.out.println("last page was full so i made a new one and numbered it: "
+//			 + numOfPages
+//			 + " ..then added tuple to it");
+//			 Page page = new Page(numOfPages);
+//			 Tuple tuple = new Tuple(toFill);
+//			 page.addContentToPage(tuple);
+//			 pages.addElement(page);
+//		 }
+//	}
 }
