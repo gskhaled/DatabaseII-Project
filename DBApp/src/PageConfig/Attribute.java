@@ -2,7 +2,7 @@ package PageConfig;
 
 import java.io.Serializable;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({ "rawtypes", "serial" })
 public class Attribute implements Serializable {
 
 	String name;
