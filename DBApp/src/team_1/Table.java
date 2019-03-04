@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+@SuppressWarnings("serial")
 public class Table implements Serializable{
 
 	static String tableName;
@@ -85,11 +86,16 @@ public class Table implements Serializable{
 		Table.key = key;
 		this.pages = new Vector<Page>();
 
-		// create a directory (folder) with the given name inside the current local path
-		new File(getDirectoryPath() + "/" + name).mkdir();
+		// create a directory (folder) with the name "DATA" inside the current local path
+		new File(getDirectoryPath() + "/data").mkdir();
 
 		// create metadata.csv
-		File file = new File(name + "/metadata.csv");
+		File file = new File("data/metadata.csv");
+		
+		File file2 = new File(name);
+		
+		//initialise the file the table points to INSIDE DATA Folder
+		this.file = new File("data/" + name);
 
 		// write into the metadata.csv file the required info
 		try {

@@ -1,11 +1,30 @@
 package team_1;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.*;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class DBApp {
 	static Table table;
 
+	public static Object deSerialization(File file) {
+		try {
+			FileInputStream fileInputStream = new FileInputStream(file);
+			BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+			ObjectInputStream objectInputStream = new ObjectInputStream(bufferedInputStream);
+			Object object = objectInputStream.readObject();
+			objectInputStream.close();
+			return object;
+		} catch (ClassNotFoundException | IOException e) {
+			System.out.println("Error in deSerialization......");
+		}
+		return null;
+	}
+	
 	public static void createTable(String tableName, String key, Hashtable<String, String> ht) {
 		table = new Table(tableName, key, ht);
 	}
@@ -85,6 +104,8 @@ public class DBApp {
 		// updateTable(strTableName, "5674567", htblColNameValue);
 		
 		printTable();
+		
+		Page.readFile();
 
 	}
 }
