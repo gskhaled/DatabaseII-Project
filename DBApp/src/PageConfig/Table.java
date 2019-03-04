@@ -55,6 +55,15 @@ public class Table {
 		return currentRelativePath.toAbsolutePath().toString();
 	}
 
+	public int getKeyIndex() {
+		for (Page p : pages)
+			for (Tuple t : p.getTuples())
+				for (int i = 0; i < t.getAttributes().size(); i++)
+					if (t.getAttributes().get(i).name.equals(key))
+						return i;
+		return 0;
+	}
+
 	public Table(String name, String key, Hashtable<String, String> ht) {
 		tableName = name;
 		Table.key = key;
@@ -82,39 +91,134 @@ public class Table {
 		}
 	}
 
-	public void insert(String tableName, Hashtable<String, Object> ht) {
+	// public void insert(String tableName, Hashtable<String, Object> ht) {
+	// Vector<Attribute> toFill = getAttributeVector(ht);
+	//
+	// Page latestPage;
+	// // initially, pages would be empty, so I add one page
+	// if (pages.isEmpty()) {
+	// this.numOfPages = 1;
+	// this.pages.addElement(new Page(1));
+	// System.out.println("added a page because pageS was empty! called it 1");
+	// latestPage = this.pages.get(0);
+	// }
+	// // otherwise I get the latest page to see if it has space
+	// else {
+	// int size = pages.size();
+	// // getting the last page in the pages vector
+	// latestPage = pages.get(size - 1);
+	// }
+	//
+	// // whether the last page still has space
+	// if (!latestPage.isFull()) {
+	// System.out.println("found space in page number: " + numOfPages + " so
+	// inserting here");
+	// Tuple tuple = new Tuple(toFill);
+	// latestPage.addContentToPage(tuple);
+	// }
+	// // means last page is full, so we make a new one, then add to it the tuple
+	// else {
+	// this.numOfPages++;
+	// System.out.println("last page was full so i made a new one and numbered it: "
+	// + numOfPages
+	// + " ..then added tuple to it");
+	// Page page = new Page(numOfPages);
+	// Tuple tuple = new Tuple(toFill);
+	// page.addContentToPage(tuple);
+	// pages.addElement(page);
+	// }
+	// }
+
+	public void newInsert(String tableName, Hashtable<String, Object> ht) {
 		Vector<Attribute> toFill = getAttributeVector(ht);
+		Tuple tuple = new Tuple(toFill);
 
-		Page latestPage;
-		// initially, pages would be empty, so I add one page
+		// initially - first time to insert. create page and just insert into it
 		if (pages.isEmpty()) {
+			Page newPage = new Page(1);
+			newPage.addContentToPage(tuple);
 			this.numOfPages = 1;
-			this.pages.addElement(new Page(1));
-			System.out.println("added a page because pageS was empty! called it 1");
-			latestPage = this.pages.get(0);
-		}
-		// otherwise I get the latest page to see if it has space
-		else {
-			int size = pages.size();
-			// getting the last page in the pages vector
-			latestPage = pages.get(size - 1);
+			this.pages.addElement(newPage);
+			System.out.println("added a page because pageS was empty! called it: " + numOfPages);
+			System.out.println("inserted: " + tuple.getAttributes().get(1).value + '\n');
+			return;
 		}
 
-		// whether the last page still has space
-		if (!latestPage.isFull()) {
-			System.out.println("found space in page number: " + numOfPages + " so inserting here");
-			Tuple tuple = new Tuple(toFill);
-			latestPage.addContentToPage(tuple);
+		// i -> page counter
+		int i;
+		for (i = 0; i < pages.size(); i++) {
+			System.out.println("inside pages loop.... " + numOfPages);
+			Page currentPage = pages.get(i);
+			Vector<Tuple> tuplesInPage = currentPage.getTuples();
+			int j = 0; // represents which tuple IN the page
+			for (; j < tuplesInPage.size(); j++) {
+				int keyIndex = getKeyIndex();
+				Integer valueInPage = (Integer) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
+				Integer insertionValue = (Integer) toFill.get(keyIndex).value;
+				System.out.println(
+						"valueInPage: " + valueInPage + " ...................insertionValue: " + insertionValue);
+				if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
+					System.out.println("found the page to insert in!!!!!!!!!!!!!!");
+					if (currentPage.isFull()) { // current page is full so I need to create a new one
+						System.out.println("creating a new page because this one was full...." + '\n');
+						numOfPages++;
+						Page newPage = new Page(numOfPages);
+						// add the tuple in a New Page
+						System.out.print(" wrote this to the newly created page: " + tuple.attributes.get(1).value + " ");
+						newPage.addContentToPage(tuple);
+						int w = j;
+						// add the rest of the tuples that came after it
+						while (w < tuplesInPage.size() && !newPage.isFull()) {
+							System.out.print(" wrote this to the page INSIDE WHILE LOOP: "
+									+ tuplesInPage.get(w).attributes.get(1).value + " ");
+							newPage.addContentToPage(tuplesInPage.get(w));
+							currentPage.deleteContentFromPage(w);
+							w++;
+						}
+						pages.add(i, newPage);
+						System.out.println();
+						return;
+					}
+					// the current page has space, so i'll insert into it
+					else {
+						System.out.println("found space so inserting in page: " + numOfPages);
+						Vector<Tuple> temp = new Vector<Tuple>();
+						int w = j;
+						// remove the content so I can insert before it
+						while (w < tuplesInPage.size()) {
+							temp.add(tuplesInPage.get(w));
+							if (tuplesInPage.size() == 1)
+								currentPage.deleteContentFromPageWithout(w);
+							else
+								currentPage.deleteContentFromPage(w);
+						}
+						// add the inserted tuple
+						currentPage.addContentToPage(tuple);
+						// readd the removed tuples
+						for (Tuple t : temp)
+							currentPage.addContentToPage(t);
+						System.out.println();
+						return;
+					}
+				}
+			}
 		}
-		// means last page is full, so we make a new one, then add to it the tuple
-		else {
-			this.numOfPages++;
-			System.out.println("last page was full so i made a new one and numbered it: " + numOfPages
-					+ " ..then added tuple to it");
-			Page page = new Page(numOfPages);
-			Tuple tuple = new Tuple(toFill);
-			page.addContentToPage(tuple);
-			pages.addElement(page);
+
+		// if the element to be inserted is the BIGGEST element, I have to add it at the
+		// end
+		if (i == pages.size()) {
+			System.out.println("Added At the END!!" + '\n');
+			Page lastPage = pages.get(i - 1);
+			if (lastPage.isFull()) {
+				System.out.println("creating a new page AT THE END because this one was full....");
+				numOfPages++;
+				Page newPage = new Page(numOfPages);
+				newPage.addContentToPage(tuple);
+				pages.add(i, newPage);
+				System.out.println("addition at the end completed successfully@@@@@@");
+			} else {
+				lastPage.addContentToPage(tuple);
+			}
 		}
 	}
 
@@ -160,5 +264,4 @@ public class Table {
 			}
 	}
 
-	
 }
