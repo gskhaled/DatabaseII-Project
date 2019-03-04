@@ -27,6 +27,14 @@ public class Page implements Serializable {
 		this.capacity++;
 
 		// I also need to write the supplied tuple to the respective file
+		writePageFile();
+	}
+
+	public Vector<Tuple> getTuples() {
+		return tuples;
+	}
+
+	public void writePageFile() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream(this.file);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -34,13 +42,17 @@ public class Page implements Serializable {
 			out.writeObject(this);
 			out.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	public void DeleteContentFromPage() {
-
+	public void deleteContentFromPage(int i) {
+		getTuples().remove(i);
+		this.capacity--;
+		if (capacity == 0)
+			this.file.delete();
+		else
+			writePageFile();
 	}
 
 	public void UpdateContentInPage() {

@@ -14,6 +14,10 @@ public class DBApp {
 		table.insert(tableName, ht);
 	}
 
+	public static void deleteFromTable(String tableName, Hashtable<String, Object> ht) {
+		table.delete(tableName, ht);
+	}
+
 	public static void main(String[] args) {
 
 		String key = "id";
@@ -49,6 +53,16 @@ public class DBApp {
 		htblColNameValue.put("id", new Integer(78452));
 		htblColNameValue.put("name", new String("Zaky Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
+
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(23498));
+		// htblColNameValue.put("name", new String("John Noor"));
+		// deleteFromTable(strTableName, htblColNameValue);
+		//
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(5674567));
+		// htblColNameValue.put("name", new String("Dalia Noor"));
+		// deleteFromTable(strTableName, htblColNameValue);
 
 	}
 }
