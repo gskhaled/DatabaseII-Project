@@ -31,7 +31,7 @@ public class DBApp {
 
 	public static void insertIntoTable(String tableName, Hashtable<String, Object> ht) {
 		table.insert(tableName, ht);
-		table.writePageFile();
+		//table.writePageFile();
 	}
 
 	public static void deleteFromTable(String tableName, Hashtable<String, Object> ht) {
@@ -88,6 +88,21 @@ public class DBApp {
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(200));
 		htblColNameValue.put("name", new String("Zaky Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+		
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(800));
+		htblColNameValue.put("name", new String("Z Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+		
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(700));
+		htblColNameValue.put("name", new String("K Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+		
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(600));
+		htblColNameValue.put("name", new String("A Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		// htblColNameValue.clear();

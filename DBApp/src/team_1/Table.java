@@ -122,17 +122,17 @@ public class Table implements Serializable{
 			Page newPage = new Page(getNumberOfPages() + 1);
 			newPage.addContentToPage(tuple);
 			this.pages.addElement(newPage);
-			// System.out.println("added a page because pageS was empty! called it: " +
-			// getNumberOfPages());
-			// System.out.println("inserted: " + tuple.getAttributes().get(1).value + '\n');
+			System.out.println("added a page because pageS was empty! called it: " +
+			getNumberOfPages());
+			System.out.println("inserted: " + tuple.getAttributes().get(1).value + '\n');
 			return;
 		}
 
 		// i -> page counter
 		int i;
+		System.out.println("I have: " + pages.size() + " pages");
 		for (i = 0; i < pages.size(); i++) {
-			// System.out.println("inside pages loop.... " + getNumberOfPages() + " & i now
-			// is: " + i);
+			System.out.println("inside pages loop.... " + getNumberOfPages() + " & i now is: " + i);
 			Page currentPage = pages.get(i);
 			Vector<Tuple> tuplesInPage = currentPage.getTuples();
 			int j = 0; // represents which tuple IN the page
@@ -140,24 +140,24 @@ public class Table implements Serializable{
 				int keyIndex = getKeyIndex();
 				Integer valueInPage = (Integer) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
 				Integer insertionValue = (Integer) toFill.get(keyIndex).value;
-				// System.out.println(
-				// "valueInPage: " + valueInPage + " ...................insertionValue: " +
-				// insertionValue);
+				System.out.println(
+				"valueInPage: " + valueInPage + " ................... insertionValue: " +
+				insertionValue);
 				if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
-					//System.out.println("found the page to insert in!!!!!!!!!!!!!!");
+					System.out.println("found the page to insert in!!!!!!!!!!!!!!");
 					if (currentPage.isFull()) { // current page is full so I need to create a new one
-						// System.out.println("creating a new page because this one was full...." +
-						// '\n');
+						System.out.println("creating a new page because this one was full...." +
+					    '\n');
 						Page newPage = new Page(getNumberOfPages() + 1);
-						// add the tuple in a New Page
-						// System.out.print(" wrote this to the newly created page: " +
-						// tuple.attributes.get(1).value + " ");
+						 //add the tuple in a New Page
+						System.out.print("wrote this to the newly created page: " +
+						tuple.attributes.get(1).value + " ");
 						newPage.addContentToPage(tuple);
 						int w = j;
-						// add the rest of the tuples that came after it
+						//add the rest of the tuples that came after it
 						while (w < tuplesInPage.size() && !newPage.isFull()) {
-							// System.out.print("wrote this to the page INSIDE WHILE LOOP: "
-							// + tuplesInPage.get(w).attributes.get(1).value + " ");
+							System.out.println("W value became: " + w + "xxxxxxxxxxxxxxxxxxxxxxxxx");
+							System.out.print("wrote this to the page INSIDE WHILE LOOP: " + tuplesInPage.get(w).attributes.get(1).value + " ");
 							newPage.addContentToPage(tuplesInPage.get(w));
 							currentPage.deleteContentFromPage(w);
 							w++;
@@ -171,13 +171,13 @@ public class Table implements Serializable{
 						else
 							pages.add(i + 1, newPage);
 						// newPage.swapID(currentPage);
-						// System.out.println("----------------------------------------------------------------------------------------------------");
+						System.out.println("----------------------------------------------------------------------------------------------------");
 						return;
 					}
 					// the current page has space, so i'll insert into it
 					else {
-						// System.out.println("found space so inserting in page: " +
-						// getNumberOfPages());
+						System.out.println("found space so inserting in page: " +
+						getNumberOfPages());
 						Vector<Tuple> temp = new Vector<Tuple>();
 						int w = j;
 						// remove the contents so I can insert the given tuple before them
@@ -193,7 +193,7 @@ public class Table implements Serializable{
 						// re-add the removed tuples
 						for (Tuple t : temp)
 							currentPage.addContentToPage(t);
-						// System.out.println("----------------------------------------------------------------------------------------------------");
+						System.out.println("----------------------------------------------------------------------------------------------------");
 						return;
 					}
 				}
@@ -203,21 +203,19 @@ public class Table implements Serializable{
 		// if the element to be inserted is the BIGGEST element, I have to add it at the
 		// end
 		if (i == pages.size()) {
-			// System.out.println("Add At the END!!" + '\n');
+			System.out.println("Add At the END!!" + '\n');
 			Page lastPage = pages.get(i - 1);
 			if (lastPage.isFull()) {
-				// System.out.println("creating a new page AT THE END because this one was
-				// full....");
+				System.out.println("creating a new page AT THE END because this one was full....");
 				Page newPage = new Page(getNumberOfPages() + 1);
 				newPage.addContentToPage(tuple);
 				// newPage.swapID(lastPage);
 				pages.add(newPage);
-				// System.out.println("@@@@@@@@addition at the end completed
-				// successfully@@@@@@");
-				// System.out.println("----------------------------------------------------------------------------------------------------");
+				System.out.println("@@@@@@@@addition at the end completed successfully@@@@@@");
+				System.out.println("----------------------------------------------------------------------------------------------------");
 			} else {
 				lastPage.addContentToPage(tuple);
-				// System.out.println("----------------------------------------------------------------------------------------------------");
+				System.out.println("----------------------------------------------------------------------------------------------------");
 			}
 		}
 	}

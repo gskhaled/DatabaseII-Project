@@ -42,7 +42,7 @@ public class Page implements Serializable {
 	}
 
 	public void addContentToPage(Tuple t) {
-		this.tuples.addElement(t);
+		this.tuples.add(t);
 		this.count++;
 
 		// I also need to write the supplied tuple to the respective file
@@ -70,7 +70,7 @@ public class Page implements Serializable {
 		this.count--;
 		if (count == 0) {
 			this.file.delete();
-			//System.out.println(".......................a file has been deleted");
+			System.out.println(".......................a file has been deleted");
 		} else
 			writePageFile();
 	}
@@ -78,7 +78,7 @@ public class Page implements Serializable {
 	public void deleteContentFromPageWithout(int i) {
 		getTuples().remove(i);
 		this.count--;
-		//System.out.println(".......................a file has NOT been deleted");
+		System.out.println(".......................a file has NOT been deleted");
 	}
 
 
