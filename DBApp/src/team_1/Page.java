@@ -57,7 +57,7 @@ public class Page implements Serializable {
 		try {
 			FileOutputStream fileOut = new FileOutputStream(this.file);
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
-			System.out.println("writing page to: " + this.file.getName());
+			System.out.println("Writing a file to represent a page: " + this.file.getName());
 			out.writeObject(this);
 			out.close();
 		} catch (IOException e) {
@@ -66,19 +66,24 @@ public class Page implements Serializable {
 	}
 
 	public void deleteContentFromPage(int i) {
-		getTuples().remove(i);
+		tuples.remove(i);
+		
+//		System.out.println("TRYING TO DELETE!!!!!!!");
+//		for (int r = 0; r < tuples.size(); r++) {
+//			Tuple t = tuples.get(r);
+//			System.out.println("ELEMENTS REMAINING: " + t.getAttributes().get(1).value.toString());
+//		}
+		
 		this.count--;
 		if (count == 0) {
 			this.file.delete();
-			System.out.println(".......................a file has been deleted");
 		} else
 			writePageFile();
 	}
 
 	public void deleteContentFromPageWithout(int i) {
-		getTuples().remove(i);
+		tuples.remove(i);
 		this.count--;
-		System.out.println(".......................a file has NOT been deleted");
 	}
 
 
