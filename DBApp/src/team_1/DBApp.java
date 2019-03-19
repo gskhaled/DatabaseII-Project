@@ -11,6 +11,12 @@ import java.util.*;
 public class DBApp {
 	static Table table;
 
+	public static void init() {
+		// create a directory (folder) with the name "DATA" inside the current local
+		// path
+		new File(Table.getDirectoryPath() + "/data").mkdir();
+	}
+
 	public static Object deSerialization(File file) {
 		try {
 			FileInputStream fileInputStream = new FileInputStream(file);
@@ -24,43 +30,31 @@ public class DBApp {
 		}
 		return null;
 	}
-	
+
 	public static void createTable(String tableName, String key, Hashtable<String, String> ht) {
 		table = new Table(tableName, key, ht);
 	}
 
 	public static void insertIntoTable(String tableName, Hashtable<String, Object> ht) {
 		table.insert(tableName, ht);
-		//table.writePageFile();
 	}
 
 	public static void deleteFromTable(String tableName, Hashtable<String, Object> ht) {
 		table.delete(tableName, ht);
-		table.writePageFile();
 	}
 
 	public static void updateTable(String tableName, String key, Hashtable<String, Object> ht) {
 		table.update(tableName, key, ht);
-		table.writePageFile();
-	}
-	
-	public static void printTable() {
-		for (int e = 0; e<table.pages.size(); e++) {
-			Page p = table.pages.get(e);
-			System.out.println("I am now in page #: " + p.id);
-			for (int r = 0; r<p.tuples.size(); r++) {
-				Tuple t = p.tuples.get(r);
-				System.out.println(t.getAttributes().get(1).value);
-			}
-		}
 	}
 
 	public static void main(String[] args) {
+		init();
+
 		String key = "id";
 		Hashtable<String, String> ht = new Hashtable<String, String>();
 		ht.put("id", "java.lang.Integer");
 		ht.put("name", "java.lang.String");
-		String strTableName = "testingg";
+		String strTableName = "testing!!";
 
 		createTable(strTableName, key, ht);
 
@@ -89,38 +83,55 @@ public class DBApp {
 		htblColNameValue.put("id", new Integer(200));
 		htblColNameValue.put("name", new String("Zaky Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
-		
+
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(800));
 		htblColNameValue.put("name", new String("Z Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
-		
+
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(700));
 		htblColNameValue.put("name", new String("K Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
-		
+
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(600));
 		htblColNameValue.put("name", new String("A Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
-
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(23498));
-		// deleteFromTable(strTableName, htblColNameValue);
-		 
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(5674567));
-		// deleteFromTable(strTableName, htblColNameValue);
-
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(5674567));
-		// htblColNameValue.put("name", new String("UPDATED NOOR"));
-		// updateTable(strTableName, "5674567", htblColNameValue);
 		
-		printTable();
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(800));
+		deleteFromTable(strTableName, htblColNameValue);
 		
-		Page.readFile();
+		ht.clear();
+		key = "id";
+		ht.put("id", "java.lang.Integer");
+		ht.put("name", "java.lang.String");
+		strTableName = "second testing!!";
+
+		createTable(strTableName, key, ht);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(777));
+		htblColNameValue.put("name", new String("Gasser"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(999));
+		htblColNameValue.put("name", new String("Khaled"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(111));
+		htblColNameValue.put("name", new String("Salma"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		
+//		htblColNameValue.clear();
+//		htblColNameValue.put("id", new Integer(123456789));
+//		htblColNameValue.put("name", new String("UPDATED"));
+//		updateTable(strTableName, "999", htblColNameValue);
 
 	}
 }
