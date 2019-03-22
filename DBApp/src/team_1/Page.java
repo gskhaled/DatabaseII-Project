@@ -18,6 +18,7 @@ public class Page implements Serializable {
 	File file; // the file the page points to
 
 	int id;
+	String tableName;
 
 	public static String readFile() {
 		try {
@@ -30,7 +31,8 @@ public class Page implements Serializable {
 		return null;
 	}
 
-	public Page(int id) {
+	public Page(String tableName, int id) {
+		this.tableName = tableName;
 		this.tuples = new Vector<Tuple>();
 
 		// stringify the DPApp.properties file and get the max number of tuples in a
