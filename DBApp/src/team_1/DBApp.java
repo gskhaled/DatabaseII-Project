@@ -47,6 +47,11 @@ public class DBApp {
 		table.update(tableName, key, ht);
 	}
 
+	public static void createBitmapIndex(String strTableName, String strColName) {
+		System.out.println(".................................................");
+		new BitmapIndex(strTableName, strColName);
+	}
+
 	public static void main(String[] args) {
 		init();
 
@@ -107,6 +112,7 @@ public class DBApp {
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(800));
+		htblColNameValue.put("name", new String("Z Noor"));
 		deleteFromTable(strTableName, htblColNameValue);
 
 		ht.clear();
@@ -137,5 +143,7 @@ public class DBApp {
 		htblColNameValue.put("name", new String("UPDATED"));
 		updateTable(strTableName, "Ahmed", htblColNameValue);
 
+		System.out.println(".................................................");
+		createBitmapIndex(strTableName, "name");
 	}
 }

@@ -19,7 +19,7 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "unused" })
 public class Table implements Serializable {
 
 	static String tableName;
@@ -175,7 +175,7 @@ public class Table implements Serializable {
 
 		// initially - first time to insert. create page and just insert into it
 		if (pages.isEmpty()) {
-			Page newPage = new Page(getNumberOfFiles() + 1);
+			Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 			newPage.addContentToPage(tuple);
 			this.pages.addElement(newPage);
 			System.out.println("inserted: " + tuple.getAttributes().get(1).value + " to created page");
@@ -206,7 +206,7 @@ public class Table implements Serializable {
 					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(getNumberOfFiles() + 1);
+							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -262,7 +262,7 @@ public class Table implements Serializable {
 					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(getNumberOfFiles() + 1);
+							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -319,7 +319,7 @@ public class Table implements Serializable {
 																		// page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(getNumberOfFiles() + 1);
+							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -376,7 +376,7 @@ public class Table implements Serializable {
 																		// page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(getNumberOfFiles() + 1);
+							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -437,7 +437,7 @@ public class Table implements Serializable {
 			// if last page was full, create a new one and insert into it
 			if (lastPage.isFull()) {
 				System.out.println("creating a new page AT THE END because last one was full....");
-				Page newPage = new Page(getNumberOfFiles() + 1);
+				Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
 				newPage.addContentToPage(tuple);
 				// newPage.swapID(lastPage);
 				pages.add(newPage);
@@ -457,11 +457,13 @@ public class Table implements Serializable {
 		for (File file : directoryListing)
 			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
 				Page p = (Page) deSerialization(file);
-				for (int i = 0; i < p.getTuples().size(); i++) {
-					Tuple t = p.getTuples().get(i);
-					if (equals(toDelete, t.getAttributes())) { // if the 2 tuples are equal, delete it from page
-						p.deleteContentFromPage(i);
-						System.out.println("Delete accomplished");
+				if (p.tableName.equals(getName())) {
+					for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
+						Tuple t = p.getTuples().get(i);
+						if (equals(toDelete, t.getAttributes())) { // if the 2 tuples are equal, delete it from page
+							p.deleteContentFromPage(i);
+							System.out.println("Delete accomplished");
+						}
 					}
 				}
 			}
@@ -486,21 +488,22 @@ public class Table implements Serializable {
 		for (File file : directoryListing)
 			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
 				Page p = (Page) deSerialization(file);
-				// for loop over the vector of TUPLES in the page
-				for (int j = 0; j < p.getTuples().size(); j++) {
-					Tuple tuple = p.getTuples().get(j);
-					Vector<Attribute> attributeVector = tuple.getAttributes();
-					for (int k = 0; k < attributeVector.size(); k++)
-						// FOUND the key of this tuple
-						if (attributeVector.get(k).name.equals(key)) {
-							String m = attributeVector.get(k).value.toString();
-							if (m.equals(keyValue)) {
-								System.out.println("Found the tuple to update. Updating...");
-								tuple.updateTuple(updated);
-								p.writePageFile();
+				if (p.tableName.equals(getName()))
+					// for loop over the vector of TUPLES in the page
+					for (int j = 0; j < p.getTuples().size(); j++) {
+						Tuple tuple = p.getTuples().get(j);
+						Vector<Attribute> attributeVector = tuple.getAttributes();
+						for (int k = 0; k < attributeVector.size(); k++)
+							// FOUND the key of this tuple
+							if (attributeVector.get(k).name.equals(key)) {
+								String m = attributeVector.get(k).value.toString();
+								if (m.equals(keyValue)) {
+									System.out.println("Found the tuple to update. Updating...");
+									tuple.updateTuple(updated);
+									p.writePageFile();
+								}
 							}
-						}
-				}
+					}
 			}
 
 		System.out.print("Update was called, so... ");
