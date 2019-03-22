@@ -1,9 +1,23 @@
 package team_1;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Date;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Vector;
 
 @SuppressWarnings("serial")
 public class Table implements Serializable {
@@ -13,6 +27,8 @@ public class Table implements Serializable {
 	transient Vector<Page> pages;
 	File file; // the file the table points to
 
+	// rewrites the file belonging to table, happens after every alteration to the
+	// table
 	public void writeTableFile() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream(this.file);
@@ -28,13 +44,14 @@ public class Table implements Serializable {
 	public int getNumberOfPages() {
 		return pages.size();
 	}
-	
+
+	// counts the number of files in the directory /data
 	public int getNumberOfFiles() {
 		File dir = new File(getDirectoryPath() + "/data");
 		File[] directoryListing = dir.listFiles();
 		int count = 0;
-		for(File file : directoryListing)
-			if(!file.getName().equals("metadata.csv"))
+		for (File file : directoryListing)
+			if (file.getName().substring(0, 4).equals("file"))
 				count++;
 		return count;
 	}
@@ -95,20 +112,21 @@ public class Table implements Serializable {
 		return 0;
 	}
 
+	// checks to see if metadata.csv was created before (it gets created once)
 	public boolean exists() {
 		File dir = new File(getDirectoryPath() + "/data");
 		File[] directoryListing = dir.listFiles();
-		for(File file : directoryListing)
-			if(file.getName().equals("metadata.csv"))
+		for (File file : directoryListing)
+			if (file.getName().equals("metadata.csv"))
 				return true;
 		return false;
 	}
-	
+
 	public Table(String name, String key, Hashtable<String, String> ht) {
 		tableName = name;
 		Table.key = key;
 		this.pages = new Vector<Page>();
-		
+
 		// initialize the file the table points to INSIDE DATA Folder
 		this.file = new File(getDirectoryPath() + "/data/" + tableName);
 
@@ -117,11 +135,13 @@ public class Table implements Serializable {
 		// new File(getDirectoryPath() + "/data/" + tableName).mkdir();
 
 		// create metadata.csv if there isn't one already in the directory
-		if(!exists())
+		if (!exists())
 			new File("data/metadata.csv");
 
 		// write into the metadata.csv file the required info
 		try {
+			// second parameter of FileWriter tells java to APPEND to metadata.csv, not
+			// REWRITE it completely
 			PrintWriter writer = new PrintWriter(new FileWriter("data/metadata.csv", true));
 			Set<String> keys = ht.keySet();
 			for (String element : keys) {
@@ -130,9 +150,9 @@ public class Table implements Serializable {
 				writer.write('\n');
 			}
 			writer.close();
-			
+
 			writeTableFile();
-			
+
 			System.out.println("Done creating a table named: " + name);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -143,12 +163,22 @@ public class Table implements Serializable {
 		Vector<Attribute> toFill = getAttributeVector(ht);
 		Tuple tuple = new Tuple(toFill);
 
+		// verify that this tuple can be inserted by checking it's format and data
+		// structures
+		if (isVerified(tuple))
+			System.out.println("Tuple verification passed!");
+		else {
+			System.out.println("Cannot be added. Error in the tuple");
+			System.out.println("----------------------------------------------------------------------------");
+			return;
+		}
+
 		// initially - first time to insert. create page and just insert into it
 		if (pages.isEmpty()) {
 			Page newPage = new Page(getNumberOfFiles() + 1);
 			newPage.addContentToPage(tuple);
 			this.pages.addElement(newPage);
-			System.out.println("inserted: " + tuple.getAttributes().get(1).value + " to newly created page");
+			System.out.println("inserted: " + tuple.getAttributes().get(1).value + " to created page");
 			System.out.println("----------------------------------------------------------------------------");
 			return;
 		}
@@ -165,64 +195,242 @@ public class Table implements Serializable {
 			// loop over all the tuples in the current page
 			for (; j < tuplesInPage.size(); j++) {
 				int keyIndex = getKeyIndex();
-				Integer valueInPage = (Integer) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
-				Integer insertionValue = (Integer) toFill.get(keyIndex).value;
-				System.out.println("valueInPage: " + valueInPage + "...... & insertionValue is: " + insertionValue);
-				if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
-					if (currentPage.isFull()) { // current page is full so I need to create a new one
-						System.out.println("creating a new page because this one was full....");
-						Page newPage = new Page(getNumberOfFiles() + 1);
-						// add the tuple in a New Page
-						System.out.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
-						newPage.addContentToPage(tuple);
-						int w = j;
-						// shift the rest of the tuples in the page to the newly created page
-						while (w < tuplesInPage.size() && !newPage.isFull()) {
-							// System.out.print("wrote this to the page INSIDE WHILE LOOP: " +
-							// tuplesInPage.get(w).attributes.get(1).value + " ");
-							newPage.addContentToPage(tuplesInPage.get(w));
-							currentPage.deleteContentFromPage(w);
-						}
-						// if j was 0, this means I needed to add the new page in the index BEFORE the
-						// current page
-						// otherwise I will add the new page in the next index relative to the current
-						// page
-						if (j == 0)
-							pages.add(i, newPage);
-						else
-							pages.add(i + 1, newPage);
-						System.out.println(
-								"----------------------------------------------------------------------------");
-						return;
-					}
-					// the current page has space, so I'll insert into it
-					else {
-						Vector<Tuple> temp = new Vector<Tuple>();
-						int w = j;
-						// remove the contents so I can insert the given tuple before them
-						while (w < tuplesInPage.size()) {
-							temp.add(tuplesInPage.get(w));
-							if (tuplesInPage.size() == 1)
-								currentPage.deleteContentFromPageWithout(w);
-							else
+
+				String valueClass = tuplesInPage.get(j).getAttributes().get(keyIndex).type.getName();
+
+				// if the data type is an int
+				if (valueClass.equals("java.lang.Integer")) {
+					Integer valueInPage = (Integer) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
+					Integer insertionValue = (Integer) toFill.get(keyIndex).value;
+					System.out.println("ValueInPage: " + valueInPage + "...... & InsertionValue is: " + insertionValue);
+					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
+						if (currentPage.isFull()) { // current page is full so I need to create a new one
+							System.out.println("creating a new page because this one was full....");
+							Page newPage = new Page(getNumberOfFiles() + 1);
+							// add the tuple in a New Page
+							System.out
+									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
+							newPage.addContentToPage(tuple);
+							int w = j;
+							// shift the rest of the tuples in the page to the newly created page
+							while (w < tuplesInPage.size() && !newPage.isFull()) {
+								// System.out.print("wrote this to the page INSIDE WHILE LOOP: " +
+								// tuplesInPage.get(w).attributes.get(1).value + " ");
+								newPage.addContentToPage(tuplesInPage.get(w));
 								currentPage.deleteContentFromPage(w);
+							}
+							// if j was 0, this means I needed to add the new page in the index BEFORE the
+							// current page
+							// otherwise I will add the new page in the next index relative to the current
+							// page
+							if (j == 0)
+								pages.add(i, newPage);
+							else
+								pages.add(i + 1, newPage);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
 						}
-						// add the inserted tuple
-						currentPage.addContentToPage(tuple);
-						// re-add the removed tuples
-						for (Tuple t : temp)
-							currentPage.addContentToPage(t);
-						System.out.println(
-								"----------------------------------------------------------------------------");
-						return;
+						// the current page has space, so I'll insert into it
+						else {
+							Vector<Tuple> temp = new Vector<Tuple>();
+							int w = j;
+							// remove the contents so I can insert the given tuple before them
+							while (w < tuplesInPage.size()) {
+								temp.add(tuplesInPage.get(w));
+								if (tuplesInPage.size() == 1)
+									currentPage.deleteContentFromPageWithout(w);
+								else
+									currentPage.deleteContentFromPage(w);
+							}
+							// add the inserted tuple
+							currentPage.addContentToPage(tuple);
+							// re-add the removed tuples
+							for (Tuple t : temp)
+								currentPage.addContentToPage(t);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
 					}
 				}
+				// if the data type is a double
+				else if (valueClass.equals("java.lang.Double")) {
+					Double valueInPage = (Double) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
+					Double insertionValue = (Double) toFill.get(keyIndex).value;
+					System.out.println("ValueInPage: " + valueInPage + "...... & InsertionValue is: " + insertionValue);
+					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
+						if (currentPage.isFull()) { // current page is full so I need to create a new one
+							System.out.println("creating a new page because this one was full....");
+							Page newPage = new Page(getNumberOfFiles() + 1);
+							// add the tuple in a New Page
+							System.out
+									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
+							newPage.addContentToPage(tuple);
+							int w = j;
+							// shift the rest of the tuples in the page to the newly created page
+							while (w < tuplesInPage.size() && !newPage.isFull()) {
+								// System.out.print("wrote this to the page INSIDE WHILE LOOP: " +
+								// tuplesInPage.get(w).attributes.get(1).value + " ");
+								newPage.addContentToPage(tuplesInPage.get(w));
+								currentPage.deleteContentFromPage(w);
+							}
+							// if j was 0, this means I needed to add the new page in the index BEFORE the
+							// current page
+							// otherwise I will add the new page in the next index relative to the current
+							// page
+							if (j == 0)
+								pages.add(i, newPage);
+							else
+								pages.add(i + 1, newPage);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+						// the current page has space, so I'll insert into it
+						else {
+							Vector<Tuple> temp = new Vector<Tuple>();
+							int w = j;
+							// remove the contents so I can insert the given tuple before them
+							while (w < tuplesInPage.size()) {
+								temp.add(tuplesInPage.get(w));
+								if (tuplesInPage.size() == 1)
+									currentPage.deleteContentFromPageWithout(w);
+								else
+									currentPage.deleteContentFromPage(w);
+							}
+							// add the inserted tuple
+							currentPage.addContentToPage(tuple);
+							// re-add the removed tuples
+							for (Tuple t : temp)
+								currentPage.addContentToPage(t);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+					}
+				}
+				// if the data type is a string
+				else if (valueClass.equals("java.lang.String")) {
+					String valueInPage = (String) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
+					String insertionValue = (String) toFill.get(keyIndex).value;
+					System.out.println("ValueInPage: " + valueInPage + "...... & InsertionValue is: " + insertionValue);
+					if (valueInPage.compareTo(insertionValue) > 0) { // this means the value is to be stored in this
+																		// page...
+						if (currentPage.isFull()) { // current page is full so I need to create a new one
+							System.out.println("creating a new page because this one was full....");
+							Page newPage = new Page(getNumberOfFiles() + 1);
+							// add the tuple in a New Page
+							System.out
+									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
+							newPage.addContentToPage(tuple);
+							int w = j;
+							// shift the rest of the tuples in the page to the newly created page
+							while (w < tuplesInPage.size() && !newPage.isFull()) {
+								// System.out.print("wrote this to the page INSIDE WHILE LOOP: " +
+								// tuplesInPage.get(w).attributes.get(1).value + " ");
+								newPage.addContentToPage(tuplesInPage.get(w));
+								currentPage.deleteContentFromPage(w);
+							}
+							// if j was 0, this means I needed to add the new page in the index BEFORE the
+							// current page
+							// otherwise I will add the new page in the next index relative to the current
+							// page
+							if (j == 0)
+								pages.add(i, newPage);
+							else
+								pages.add(i + 1, newPage);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+						// the current page has space, so I'll insert into it
+						else {
+							Vector<Tuple> temp = new Vector<Tuple>();
+							int w = j;
+							// remove the contents so I can insert the given tuple before them
+							while (w < tuplesInPage.size()) {
+								temp.add(tuplesInPage.get(w));
+								if (tuplesInPage.size() == 1)
+									currentPage.deleteContentFromPageWithout(w);
+								else
+									currentPage.deleteContentFromPage(w);
+							}
+							// add the inserted tuple
+							currentPage.addContentToPage(tuple);
+							// re-add the removed tuples
+							for (Tuple t : temp)
+								currentPage.addContentToPage(t);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+					}
+				}
+				// if the data typs is a date
+				else if (valueClass.equals("java.lang.Date")) {
+					Date valueInPage = (Date) tuplesInPage.get(j).getAttributes().get(keyIndex).value;
+					Date insertionValue = (Date) toFill.get(keyIndex).value;
+					System.out.println("ValueInPage: " + valueInPage + "...... & InsertionValue is: " + insertionValue);
+					if (valueInPage.compareTo(insertionValue) > 0) { // this means the value is to be stored in this
+																		// page...
+						if (currentPage.isFull()) { // current page is full so I need to create a new one
+							System.out.println("creating a new page because this one was full....");
+							Page newPage = new Page(getNumberOfFiles() + 1);
+							// add the tuple in a New Page
+							System.out
+									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
+							newPage.addContentToPage(tuple);
+							int w = j;
+							// shift the rest of the tuples in the page to the newly created page
+							while (w < tuplesInPage.size() && !newPage.isFull()) {
+								// System.out.print("wrote this to the page INSIDE WHILE LOOP: " +
+								// tuplesInPage.get(w).attributes.get(1).value + " ");
+								newPage.addContentToPage(tuplesInPage.get(w));
+								currentPage.deleteContentFromPage(w);
+							}
+							// if j was 0, this means I needed to add the new page in the index BEFORE the
+							// current page
+							// otherwise I will add the new page in the next index relative to the current
+							// page
+							if (j == 0)
+								pages.add(i, newPage);
+							else
+								pages.add(i + 1, newPage);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+						// the current page has space, so I'll insert into it
+						else {
+							Vector<Tuple> temp = new Vector<Tuple>();
+							int w = j;
+							// remove the contents so I can insert the given tuple before them
+							while (w < tuplesInPage.size()) {
+								temp.add(tuplesInPage.get(w));
+								if (tuplesInPage.size() == 1)
+									currentPage.deleteContentFromPageWithout(w);
+								else
+									currentPage.deleteContentFromPage(w);
+							}
+							// add the inserted tuple
+							currentPage.addContentToPage(tuple);
+							// re-add the removed tuples
+							for (Tuple t : temp)
+								currentPage.addContentToPage(t);
+							System.out.println(
+									"----------------------------------------------------------------------------");
+							return;
+						}
+					}
+				}
+
 			}
 		}
 
 		// if the element to be inserted is the BIGGEST element, I have to add it at the
 		// end
-		// this means i kept being incremented till the end of the pages vector
+		// this means "i" kept being incremented till the end of the pages vector
 		if (i == pages.size()) {
 			System.out.println("Added at the END!!");
 			Page lastPage = pages.get(i - 1);
@@ -247,14 +455,8 @@ public class Table implements Serializable {
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
 		for (File file : directoryListing)
-			if (!file.getName().equals("metadata.csv")) { // make sure not to touch metadata.csv
-				Page p;
-				try {
-					p = (Page) deSerialization(file); // deserialise the page from disk
-				}
-				catch(ClassCastException e) {
-					break;
-				}
+			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
+				Page p = (Page) deSerialization(file);
 				for (int i = 0; i < p.getTuples().size(); i++) {
 					Tuple t = p.getTuples().get(i);
 					if (equals(toDelete, t.getAttributes())) { // if the 2 tuples are equal, delete it from page
@@ -263,32 +465,35 @@ public class Table implements Serializable {
 					}
 				}
 			}
-		
+		System.out.print("Delete was called, so... ");
 		writeTableFile();
 	}
 
 	public void update(String name, String keyValue, Hashtable<String, Object> ht) {
 		Vector<Attribute> updated = getAttributeVector(ht);
+
+		if (isVerified(new Tuple(updated)))
+			System.out.println("Tuple verification passed!");
+		else {
+			System.out.println("Cannot be added. Error in the tuple");
+			System.out.println("----------------------------------------------------------------------------");
+			return;
+		}
+
 		File dir = new File(getDirectoryPath() + "/data/");
 		File[] directoryListing = dir.listFiles();
 		// loop over every file in the current directory
 		for (File file : directoryListing)
-			if (!file.getName().equals("metadata.csv")) { // make sure not to touch metadata.csv
-				Page p;
-				try {
-					p = (Page) deSerialization(file); // deserialise the page from disk
-				}
-				catch(ClassCastException e) {
-					break;
-				}
+			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
+				Page p = (Page) deSerialization(file);
 				// for loop over the vector of TUPLES in the page
-				for (int i = 0; i < p.getTuples().size(); i++) {
-					Tuple tuple = p.getTuples().get(i);
+				for (int j = 0; j < p.getTuples().size(); j++) {
+					Tuple tuple = p.getTuples().get(j);
 					Vector<Attribute> attributeVector = tuple.getAttributes();
-					for (int j = 0; j < attributeVector.size(); j++)
+					for (int k = 0; k < attributeVector.size(); k++)
 						// FOUND the key of this tuple
-						if (attributeVector.get(j).name.equals(key)) {
-							String m = attributeVector.get(j).value.toString();
+						if (attributeVector.get(k).name.equals(key)) {
+							String m = attributeVector.get(k).value.toString();
 							if (m.equals(keyValue)) {
 								System.out.println("Found the tuple to update. Updating...");
 								tuple.updateTuple(updated);
@@ -297,23 +502,56 @@ public class Table implements Serializable {
 						}
 				}
 			}
+
+		System.out.print("Update was called, so... ");
 		writeTableFile();
 	}
 
-//	public String toString() {
-//		String s = "" ;
-//		File dir = new File(getDirectoryPath() + "/data/");
-//		File[] directoryListing = dir.listFiles();
-//		// loop over every file in the current directory
-//		for (File file : directoryListing)
-//			if (!file.getName().equals("metadata.csv")) { // make sure not to touch metadata.csv
-//				Page p = (Page) deSerialization(file);
-//				// for loop over the vector of TUPLES in the page
-//				for (int i = 0; i < p.getTuples().size(); i++) {
-//					Tuple tuple = p.getTuples().get(i);
-//					Vector<Attribute> attributeVector = tuple.getAttributes();
-//				}
-//          }
-//		return s;
-//	}
+	public boolean isVerified(Tuple t) {
+		Vector<String> colName = new Vector<String>();
+		Vector<String> colType = new Vector<String>();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(getDirectoryPath() + "/data/metadata.csv"));
+			String line = br.readLine().toString();
+			while (line != null) {
+				String[] s = line.split(", ");
+				if (s[0].equals(tableName)) {
+					colName.add(s[1]);
+					colType.add(s[2]);
+				}
+				line = br.readLine();
+			}
+			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		for (int i = 0; i < t.getAttributes().size(); i++) {
+			if (t.getAttributes().size() != colName.size() || t.getAttributes().size() != colType.size())
+				return false;
+			if (!t.getAttributes().get(i).name.equals(colName.get(i)))
+				return false;
+			if (!t.getAttributes().get(i).type.getName().equals(colType.get(i)))
+				return false;
+		}
+		return true;
+	}
+
+	// public String toString() {
+	// String s = "" ;
+	// File dir = new File(getDirectoryPath() + "/data/");
+	// File[] directoryListing = dir.listFiles();
+	// // loop over every file in the current directory
+	// for (File file : directoryListing)
+	// if (!file.getName().equals("metadata.csv")) { // make sure not to touch
+	// metadata.csv
+	// Page p = (Page) deSerialization(file);
+	// // for loop over the vector of TUPLES in the page
+	// for (int i = 0; i < p.getTuples().size(); i++) {
+	// Tuple tuple = p.getTuples().get(i);
+	// Vector<Attribute> attributeVector = tuple.getAttributes();
+	// }
+	// }
+	// return s;
+	// }
 }

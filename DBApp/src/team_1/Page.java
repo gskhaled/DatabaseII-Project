@@ -1,9 +1,15 @@
 package team_1;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.Vector;
 
-@SuppressWarnings({"serial", "resource"})
+@SuppressWarnings({ "serial", "resource" })
 public class Page implements Serializable {
 
 	Vector<Tuple> tuples;
@@ -24,17 +30,18 @@ public class Page implements Serializable {
 		return null;
 	}
 
-	public Page(int num) {
+	public Page(int id) {
 		this.tuples = new Vector<Tuple>();
-		
-		//stringify the DPApp.properties file and get the max number of tuples in a page
-		String [] parts = readFile().split("= ");
+
+		// stringify the DPApp.properties file and get the max number of tuples in a
+		// page
+		String[] parts = readFile().split("= ");
 		this.capacity = Integer.parseInt(parts[1]);
-		
+
 		this.count = 0;
-		this.id = num;
+		this.id = id;
 		// every time I create a new page, I need to create a new file to reflect this
-		this.file = new File("data/file " + id);
+		this.file = new File("data/file " + this.id);
 	}
 
 	public boolean isFull() {
@@ -67,13 +74,14 @@ public class Page implements Serializable {
 
 	public void deleteContentFromPage(int i) {
 		tuples.remove(i);
-		
-//		System.out.println("TRYING TO DELETE!!!!!!!");
-//		for (int r = 0; r < tuples.size(); r++) {
-//			Tuple t = tuples.get(r);
-//			System.out.println("ELEMENTS REMAINING: " + t.getAttributes().get(1).value.toString());
-//		}
-		
+
+		// System.out.println("TRYING TO DELETE!!!!!!!");
+		// for (int r = 0; r < tuples.size(); r++) {
+		// Tuple t = tuples.get(r);
+		// System.out.println("ELEMENTS REMAINING: " +
+		// t.getAttributes().get(1).value.toString());
+		// }
+
 		this.count--;
 		if (count == 0) {
 			this.file.delete();
@@ -85,44 +93,5 @@ public class Page implements Serializable {
 		tuples.remove(i);
 		this.count--;
 	}
-
-
-	
-//	public Tuple getMaxTill(Vector<Tuple> v, int limit, String key) {
-//		Tuple maxSoFar = v.get(0);
-//		int i = 0;
-//		while (i < limit) {
-//			for (int j = 0; j < v.get(i).getAttributes().size(); j++) {
-//				Attribute a = v.get(i).getAttributes().get(j);
-//				Attribute b = v.g
-//			}
-//		}
-//	
-//	}
-//	
-//	public Page sortPage(Page p, int id, String key) {
-//		Vector<Tuple> v = new Vector<Tuple>();
-//		for (Tuple t : p.getTuples()) {
-//			int i;
-//		}
-//	
-//	}
-
-//	public void setID(int id) {
-//		this.id = id;
-//		this.file.renameTo(new File(Table.getName() + "/file " + id));
-//	}
-//
-//	public void setTemp() {
-//		this.file.renameTo(new File(Table.getName() + "/file temp"));
-//	}
-//
-//	public void swapID(Page p) {
-//		int this_id = this.id;
-//		int p_id = p.id;
-//		this.setTemp();
-//		p.setID(this_id);
-//		this.setID(p_id);
-//	}
 
 }
