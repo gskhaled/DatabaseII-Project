@@ -20,17 +20,16 @@ public class BitmapPage implements Serializable {
 
 	String tableName;
 
-	public BitmapPage(int num) {
+	public BitmapPage(String tableName, int num) {
 		this.indices = new Vector<Index>();
 		this.count = 0;
 
 		String[] parts = readFile().split("= ");
 		this.capacity = Integer.parseInt(parts[1]);
+		this.tableName = tableName;
 
 		this.id = num;
 		this.file = new File("data/bitmapFile " + this.id);
-
-		// this.tableName = tableName;
 	}
 
 	public void writePageFile() {

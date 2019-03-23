@@ -20,17 +20,6 @@ public class Page implements Serializable {
 	int id;
 	String tableName;
 
-	public static String readFile() {
-		try {
-			String path = Table.getDirectoryPath();
-			BufferedReader br = new BufferedReader(new FileReader(path + "/config/DBApp.properties"));
-			return br.readLine().toString();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
 	public Page(String tableName, int id) {
 		this.tableName = tableName;
 		this.tuples = new Vector<Tuple>();
@@ -44,6 +33,17 @@ public class Page implements Serializable {
 		this.id = id;
 		// every time I create a new page, I need to create a new file to reflect this
 		this.file = new File("data/file " + this.id);
+	}
+
+	public static String readFile() {
+		try {
+			String path = Table.getDirectoryPath();
+			BufferedReader br = new BufferedReader(new FileReader(path + "/config/DBApp.properties"));
+			return br.readLine().toString();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	public boolean isFull() {
@@ -94,6 +94,13 @@ public class Page implements Serializable {
 	public void deleteContentFromPageWithout(int i) {
 		tuples.remove(i);
 		this.count--;
+		writePageFile();
+	}
+
+	public void renamePage(int num) {
+		this.id = num;
+		this.file.renameTo(new File("data/file " + this.id));
+		writePageFile();
 	}
 
 }

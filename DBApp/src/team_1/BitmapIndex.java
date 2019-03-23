@@ -1,6 +1,9 @@
 package team_1;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
@@ -8,12 +11,19 @@ import java.util.Vector;
 
 @SuppressWarnings("serial")
 public class BitmapIndex implements Serializable {
+
 	transient Vector<BitmapPage> pages;
+	String tableName;
 	String colName;
+	File file;
 
 	public BitmapIndex(String tableName, String colName) {
 		this.pages = new Vector<BitmapPage>();
+		this.tableName = tableName;
 		this.colName = colName;
+
+		// initialize the file the index points to INSIDE DATA Folder
+		this.file = new File(Table.getDirectoryPath() + "/data/" + "bitmap index on " + colName + " in " + tableName);
 
 		Vector<Object> vector = createDenseIndexArray(tableName, colName);
 		System.out.println(vector);
@@ -21,7 +31,7 @@ public class BitmapIndex implements Serializable {
 		System.out.println(vector);
 		Vector<Index> indexVector = setBitmap(tableName, colName, vector);
 
-		this.pages.addElement(new BitmapPage(1));
+		this.pages.addElement(new BitmapPage(tableName, 1));
 
 		int p = 0; // counter for the number of pages
 		// this loop just keeps adding indices to the bitmap index using
@@ -32,11 +42,13 @@ public class BitmapIndex implements Serializable {
 			if (!bp.isFull())
 				bp.addIndexToPage(index);
 			else {
-				this.pages.addElement(new BitmapPage(getNumberOfFiles() + 1));
+				this.pages.addElement(new BitmapPage(tableName, getNumberOfFiles() + 1));
 				p++;
 				this.pages.get(p).addIndexToPage(index);
 			}
 		}
+
+		writeIndexFile();
 	}
 
 	public Vector<Object> createDenseIndexArray(String tableName, String colName) {
@@ -82,22 +94,27 @@ public class BitmapIndex implements Serializable {
 						Tuple t = p.getTuples().get(i);
 						for (int j = 0; j < t.getAttributes().size(); j++) {
 							Attribute x = t.getAttributes().get(j);
-							if (x.name.equals(colName))
+							if (x.name.equals(colName)) {
+								System.out.print(x.value + " ");
 								a.add(x.value);
+							}
 						}
 					}
 			}
 
+		System.out.println();
 		for (Object o1 : vector) {
+			System.out.println("the element: " + o1.toString());
 			Index x;
 			if (o1.getClass().getName().equals("java.lang.Integer"))
-				x = new Index(o1);
+				x = new Index((Integer) o1);
 			else if (o1.getClass().getName().equals("java.lang.String"))
-				x = new Index(o1);
+				x = new Index((String) o1);
 			else if (o1.getClass().getName().equals("java.lang.Double"))
-				x = new Index(o1);
+				x = new Index((Double) o1);
 			else
-				x = new Index(o1);
+				x = new Index((Date) o1);
+
 			for (Object o2 : a) {
 				if (o1.equals(o2))
 					x.addToBitmap('1');
@@ -169,9 +186,21 @@ public class BitmapIndex implements Serializable {
 		File[] directoryListing = dir.listFiles();
 		int count = 0;
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 10).equals("bitmapFile"))
+			if (file.getName().length() > 10 && file.getName().substring(0, 10).equals("bitmapFile"))
 				count++;
 		return count;
+	}
+
+	public void writeIndexFile() {
+		try {
+			FileOutputStream fileOut = new FileOutputStream(this.file);
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			System.out.println("Writing a file to represent INDEX: " + this.file.getName());
+			out.writeObject(this);
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
