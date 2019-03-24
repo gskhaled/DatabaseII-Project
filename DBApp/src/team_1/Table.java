@@ -19,16 +19,52 @@ import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
 
-@SuppressWarnings({ "serial", "unused" })
+@SuppressWarnings({ "serial" })
 public class Table implements Serializable {
 
-	static String tableName;
+	String tableName;
 	static String key;
-	transient Vector<Page> pages;
+	transient static Vector<Page> pages;
 	File file; // the file the table points to
 
-	// rewrites the file belonging to table, happens after every alteration to the
-	// table
+	public Table(String name, String key, Hashtable<String, String> ht) {
+		tableName = name;
+		Table.key = key;
+		pages = new Vector<Page>();
+
+		// initialize the file the table points to INSIDE DATA Folder
+		this.file = new File(getDirectoryPath() + "/data/" + tableName);
+
+		// create a directory (folder) with the name of the table, which contains the
+		// pages
+		// new File(getDirectoryPath() + "/data/" + tableName).mkdir();
+
+		// create metadata.csv if there isn't one already in the directory
+		if (!exists())
+			new File("data/metadata.csv");
+
+		// write into the metadata.csv file the required info
+		try {
+			// second parameter of FileWriter tells java to APPEND to metadata.csv, not
+			// REWRITE it completely
+			PrintWriter writer = new PrintWriter(new FileWriter("data/metadata.csv", true));
+			Set<String> keys = ht.keySet();
+			for (String element : keys) {
+				writer.write(name + ", " + element + ", " + ht.get(element) + ", ");
+				writer.write((element == key ? "True" : "False") + ", False");
+				writer.write('\n');
+			}
+			writer.close();
+
+			writeTableFile();
+
+			System.out.println("Done creating a table named: " + name);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// writes the file belonging to table, happens only once when creating table
 	public void writeTableFile() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream(this.file);
@@ -41,22 +77,19 @@ public class Table implements Serializable {
 		}
 	}
 
-	public int getNumberOfPages() {
-		return pages.size();
-	}
-
 	// counts the number of files in the directory /data
-	public int getNumberOfFiles() {
+	public static int getNumberOfFiles(String tableName) {
 		File dir = new File(getDirectoryPath() + "/data");
 		File[] directoryListing = dir.listFiles();
 		int count = 0;
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 4).equals("file"))
-				count++;
+			if (file.getName().length() > tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page"))
+					count++;
 		return count;
 	}
 
-	public static String getName() {
+	public String getName() {
 		return tableName;
 	}
 
@@ -103,7 +136,7 @@ public class Table implements Serializable {
 	}
 
 	// returns an INT which represent which attribute in the tuple is the KEY
-	public int getKeyIndex() {
+	public static int getKeyIndex() {
 		for (Page p : pages)
 			for (Tuple t : p.getTuples())
 				for (int i = 0; i < t.getAttributes().size(); i++)
@@ -122,50 +155,14 @@ public class Table implements Serializable {
 		return false;
 	}
 
-	public Table(String name, String key, Hashtable<String, String> ht) {
-		tableName = name;
-		Table.key = key;
-		this.pages = new Vector<Page>();
-
-		// initialize the file the table points to INSIDE DATA Folder
-		this.file = new File(getDirectoryPath() + "/data/" + tableName);
-
-		// create a directory (folder) with the name of the table, which contains the
-		// pages
-		// new File(getDirectoryPath() + "/data/" + tableName).mkdir();
-
-		// create metadata.csv if there isn't one already in the directory
-		if (!exists())
-			new File("data/metadata.csv");
-
-		// write into the metadata.csv file the required info
-		try {
-			// second parameter of FileWriter tells java to APPEND to metadata.csv, not
-			// REWRITE it completely
-			PrintWriter writer = new PrintWriter(new FileWriter("data/metadata.csv", true));
-			Set<String> keys = ht.keySet();
-			for (String element : keys) {
-				writer.write(name + ", " + element + ", " + ht.get(element) + ", ");
-				writer.write((element == key ? "True" : "False") + ", ");
-				writer.write('\n');
-			}
-			writer.close();
-
-			writeTableFile();
-
-			System.out.println("Done creating a table named: " + name);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void insert(String tableName, Hashtable<String, Object> ht) {
+	public static void insert(String tableName, Hashtable<String, Object> ht) {
 		Vector<Attribute> toFill = getAttributeVector(ht);
 		Tuple tuple = new Tuple(toFill);
+		int keyIndex = getKeyIndex();
 
 		// verify that this tuple can be inserted by checking it's format and data
 		// structures
-		if (isVerified(tuple))
+		if (isVerified(tableName, tuple))
 			System.out.println("Tuple verification passed!");
 		else {
 			System.out.println("Cannot be added. Error in the tuple");
@@ -175,10 +172,10 @@ public class Table implements Serializable {
 
 		// initially - first time to insert. create page and just insert into it
 		if (pages.isEmpty()) {
-			Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+			Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
 			newPage.addContentToPage(tuple);
-			this.pages.addElement(newPage);
-			System.out.println("inserted: " + tuple.getAttributes().get(1).value + " to created page");
+			pages.addElement(newPage);
+			System.out.println("inserted: " + tuple.getAttributes().get(1).value + " to newly created page");
 			System.out.println("----------------------------------------------------------------------------");
 			return;
 		}
@@ -194,7 +191,6 @@ public class Table implements Serializable {
 
 			// loop over all the tuples in the current page
 			for (; j < tuplesInPage.size(); j++) {
-				int keyIndex = getKeyIndex();
 
 				String valueClass = tuplesInPage.get(j).getAttributes().get(keyIndex).type.getName();
 
@@ -206,11 +202,12 @@ public class Table implements Serializable {
 					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+							Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
+
 							// add the tuple in a New Page
+							newPage.addContentToPage(tuple);
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
-							newPage.addContentToPage(tuple);
 							int w = j;
 							// shift the rest of the tuples in the page to the newly created page
 							while (w < tuplesInPage.size() && !newPage.isFull()) {
@@ -229,6 +226,10 @@ public class Table implements Serializable {
 								pages.add(i + 1, newPage);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							renameFiles(tableName);
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 						// the current page has space, so I'll insert into it
@@ -250,6 +251,9 @@ public class Table implements Serializable {
 								currentPage.addContentToPage(t);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 					}
@@ -262,7 +266,7 @@ public class Table implements Serializable {
 					if (valueInPage > insertionValue) { // this means the value is to be stored in this page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+							Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -285,6 +289,10 @@ public class Table implements Serializable {
 								pages.add(i + 1, newPage);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							renameFiles(tableName);
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 						// the current page has space, so I'll insert into it
@@ -306,6 +314,9 @@ public class Table implements Serializable {
 								currentPage.addContentToPage(t);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 					}
@@ -319,7 +330,7 @@ public class Table implements Serializable {
 																		// page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+							Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -342,6 +353,10 @@ public class Table implements Serializable {
 								pages.add(i + 1, newPage);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							renameFiles(tableName);
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 						// the current page has space, so I'll insert into it
@@ -363,6 +378,9 @@ public class Table implements Serializable {
 								currentPage.addContentToPage(t);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 					}
@@ -376,7 +394,7 @@ public class Table implements Serializable {
 																		// page...
 						if (currentPage.isFull()) { // current page is full so I need to create a new one
 							System.out.println("creating a new page because this one was full....");
-							Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+							Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
 							// add the tuple in a New Page
 							System.out
 									.println("wrote this to the newly created page: " + tuple.attributes.get(1).value);
@@ -399,6 +417,11 @@ public class Table implements Serializable {
 								pages.add(i + 1, newPage);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							renameFiles(tableName);
+
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 						// the current page has space, so I'll insert into it
@@ -420,6 +443,9 @@ public class Table implements Serializable {
 								currentPage.addContentToPage(t);
 							System.out.println(
 									"----------------------------------------------------------------------------");
+							if (hasBitmapIndexBuilt(tableName))
+								BitmapIndex.updateBitmapIndex(tableName);
+
 							return;
 						}
 					}
@@ -437,7 +463,7 @@ public class Table implements Serializable {
 			// if last page was full, create a new one and insert into it
 			if (lastPage.isFull()) {
 				System.out.println("creating a new page AT THE END because last one was full....");
-				Page newPage = new Page(Table.tableName, getNumberOfFiles() + 1);
+				Page newPage = new Page(tableName, getNumberOfFiles(tableName) + 1);
 				newPage.addContentToPage(tuple);
 				// newPage.swapID(lastPage);
 				pages.add(newPage);
@@ -446,35 +472,42 @@ public class Table implements Serializable {
 				lastPage.addContentToPage(tuple);
 			System.out.println("----------------------------------------------------------------------------");
 		}
+
+		if (hasBitmapIndexBuilt(tableName))
+			BitmapIndex.updateBitmapIndex(tableName);
 	}
 
-	public void delete(String tableName, Hashtable<String, Object> ht) {
+	public static void delete(String tableName, Hashtable<String, Object> ht) {
 		// change the hashtable input to a vector of attributes (tuple)
 		Vector<Attribute> toDelete = getAttributeVector(ht);
 		File dir = new File(getDirectoryPath() + "/data/");
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
-				Page p = (Page) deSerialization(file);
-				if (p.tableName.equals(getName())) {
-					for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
-						Tuple t = p.getTuples().get(i);
-						if (equals(toDelete, t.getAttributes())) { // if the 2 tuples are equal, delete it from page
-							p.deleteContentFromPage(i);
-							System.out.println("Delete accomplished");
+			if (file.getName().length() > tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) {
+					Page p = (Page) deSerialization(file);
+					if (p.tableName.equals(tableName)) {
+						for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
+							Tuple t = p.getTuples().get(i);
+							if (equals(toDelete, t.getAttributes())) { // if the 2 tuples are equal, delete it from page
+								System.out.print("Deleting........ ");
+								p.deleteContentFromPage(i);
+							}
 						}
 					}
 				}
-			}
-		System.out.print("Delete was called, so... ");
-		writeTableFile();
+
+		if (hasBitmapIndexBuilt(tableName))
+			BitmapIndex.updateBitmapIndex(tableName);
+		// System.out.print("Delete was called, so... ");
+		// writeTableFile();
 	}
 
-	public void update(String name, String keyValue, Hashtable<String, Object> ht) {
+	public static void update(String tableName, String keyValue, Hashtable<String, Object> ht) {
 		Vector<Attribute> updated = getAttributeVector(ht);
 
-		if (isVerified(new Tuple(updated)))
+		if (isVerified(tableName, new Tuple(updated)))
 			System.out.println("Tuple verification passed!");
 		else {
 			System.out.println("Cannot be added. Error in the tuple");
@@ -486,31 +519,37 @@ public class Table implements Serializable {
 		File[] directoryListing = dir.listFiles();
 		// loop over every file in the current directory
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 4).equals("file")) { // make sure to only check files!
-				Page p = (Page) deSerialization(file);
-				if (p.tableName.equals(getName()))
-					// for loop over the vector of TUPLES in the page
-					for (int j = 0; j < p.getTuples().size(); j++) {
-						Tuple tuple = p.getTuples().get(j);
-						Vector<Attribute> attributeVector = tuple.getAttributes();
-						for (int k = 0; k < attributeVector.size(); k++)
-							// FOUND the key of this tuple
-							if (attributeVector.get(k).name.equals(key)) {
-								String m = attributeVector.get(k).value.toString();
-								if (m.equals(keyValue)) {
-									System.out.println("Found the tuple to update. Updating...");
-									tuple.updateTuple(updated);
-									p.writePageFile();
+			if (file.getName().length() > tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) { // make sure
+																										// to only
+					// check files!
+					Page p = (Page) deSerialization(file);
+					if (p.tableName.equals(tableName))
+						// for loop over the vector of TUPLES in the page
+						for (int j = 0; j < p.getTuples().size(); j++) {
+							Tuple tuple = p.getTuples().get(j);
+							Vector<Attribute> attributeVector = tuple.getAttributes();
+							for (int k = 0; k < attributeVector.size(); k++)
+								// FOUND the key of this tuple
+								if (attributeVector.get(k).name.equals(key)) {
+									String m = attributeVector.get(k).value.toString();
+									if (m.equals(keyValue)) {
+										System.out.println("Found the tuple to update. Updating...");
+										tuple.updateTuple(updated);
+										p.writePageFile();
+									}
 								}
-							}
-					}
-			}
+						}
+				}
 
-		System.out.print("Update was called, so... ");
-		writeTableFile();
+		if (hasBitmapIndexBuilt(tableName))
+			BitmapIndex.updateBitmapIndex(tableName);
+
+		// System.out.print("Update was called, so... ");
+		// writeTableFile();
 	}
 
-	public boolean isVerified(Tuple t) {
+	public static boolean isVerified(String tableName, Tuple t) {
 		Vector<String> colName = new Vector<String>();
 		Vector<String> colType = new Vector<String>();
 		try {
@@ -540,21 +579,61 @@ public class Table implements Serializable {
 		return true;
 	}
 
-	// public String toString() {
-	// String s = "" ;
-	// File dir = new File(getDirectoryPath() + "/data/");
+	public static void renameFiles(String tableName) {
+		for (int i = pages.size() - 1; i >= 0; i--) {
+			Page p = pages.get(i);
+			p.renamePage(i + 1);
+		}
+	}
+
+	public static boolean hasBitmapIndexBuilt(String tableName) {
+		File dir = new File(getDirectoryPath() + "/data/");
+		File[] directoryListing = dir.listFiles();
+		// loop over every file in the current directory
+		for (File file : directoryListing) {
+			String[] s = file.getName().split("on ");
+			if (s.length > 1)
+				if (s[2].equals(tableName))
+					return true;
+		}
+		return false;
+
+	}
+
+	public static void printTable(String tableName) {
+		System.out.println(
+				"############################################################################################");
+		File dir = new File(Table.getDirectoryPath() + "/data");
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (file.getName().length() > tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) {
+					Page p = (Page) Table.deSerialization(file);
+					if (p.tableName.equals(tableName))
+						for (Tuple t : p.getTuples()) {
+							for (Attribute a : t.getAttributes())
+								System.out.print("Attribute name: " + a.name + "& it's value: " + a.value + " ");
+							System.out.println();
+						}
+
+				}
+		System.out.println(
+				"############################################################################################");
+	}
+
+	// public void addBitmapIndex(String tableName, String colName) {
+	// File dir = new File(Table.getDirectoryPath() + "/data/");
 	// File[] directoryListing = dir.listFiles();
-	// // loop over every file in the current directory
+	// // loop over all files in the directory
 	// for (File file : directoryListing)
-	// if (!file.getName().equals("metadata.csv")) { // make sure not to touch
-	// metadata.csv
-	// Page p = (Page) deSerialization(file);
-	// // for loop over the vector of TUPLES in the page
-	// for (int i = 0; i < p.getTuples().size(); i++) {
-	// Tuple tuple = p.getTuples().get(i);
-	// Vector<Attribute> attributeVector = tuple.getAttributes();
+	// if (!file.getName().substring(0, 4).equals("file")) {
+	// // make sure to only check tables!
+	// Table t = (Table) Table.deSerialization(file);
+	// if (t.getName().equals(tableName)) // if the file belongs to the requested
+	// table
+	// t.hasBitmapIndex.addElement(colName);
 	// }
+	// writeTableFile();
 	// }
-	// return s;
-	// }
+
 }

@@ -1,4 +1,2 @@
-testing!!, name, java.lang.String, False, 
-testing!!, id, java.lang.Integer, True, 
-second testing!!, name, java.lang.String, True, 
-second testing!!, id, java.lang.Integer, False, 
+testing!!, name, java.lang.String, False, True
+testing!!, id, java.lang.Integer, True, False

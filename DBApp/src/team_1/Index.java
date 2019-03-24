@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 @SuppressWarnings("serial")
 public class Index implements Serializable {
+
 	Object value;
 	String bitmap;
 
