@@ -1,15 +1,35 @@
 package team_1;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Hashtable;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class DBApp {
 
 	public static void init() {
+		try {
+			deleteDirectoryRecursion(new File(Table.getDirectoryPath() + "/data"));
+		} catch (IOException e) {
+
+		}
 		// create a directory (folder) with the name "DATA" inside the current local
 		// path
 		new File(Table.getDirectoryPath() + "/data").mkdir();
+	}
+
+	public static void deleteDirectoryRecursion(File file) throws IOException {
+		if (file.isDirectory()) {
+			File[] entries = file.listFiles();
+			if (entries != null) {
+				for (File entry : entries) {
+					deleteDirectoryRecursion(entry);
+				}
+			}
+		}
+		if (!file.delete()) {
+			throw new IOException("Failed to delete " + file);
+		}
 	}
 
 	public static void createTable(String tableName, String key, Hashtable<String, String> ht) {
@@ -47,92 +67,103 @@ public class DBApp {
 		Hashtable htblColNameValue = new Hashtable();
 
 		htblColNameValue.put("id", new Integer(400));
-		htblColNameValue.put("name", new String("Noor Noor"));
-		insertIntoTable(strTableName, htblColNameValue);
-
-		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(3));
-		htblColNameValue.put("name", new String("Ahmed"));
-		htblColNameValue.put("batates", new String("batates"));
+		htblColNameValue.put("name", new String("G Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(300));
-		htblColNameValue.put("name", new String("Ahmed Noor"));
+		htblColNameValue.put("name", new String("H Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(100));
-		htblColNameValue.put("name", new String("John Noor"));
+		htblColNameValue.put("name", new String("J Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(450));
-		htblColNameValue.put("name", new String("Dalia Noor"));
+		htblColNameValue.put("id", new Integer(500));
+		htblColNameValue.put("name", new String("F Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(200));
-		htblColNameValue.put("name", new String("Zaky Noor"));
+		htblColNameValue.put("name", new String("I Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(800));
-		htblColNameValue.put("name", new String("Z Noor"));
+		htblColNameValue.put("name", new String("B Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(700));
-		htblColNameValue.put("name", new String("K Noor"));
+		htblColNameValue.put("name", new String("C Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(10));
-		htblColNameValue.put("name", new String("hgdghfg Noor"));
+		htblColNameValue.put("name", new String("K Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(50000));
+		htblColNameValue.put("name", new String("A Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(5));
+		htblColNameValue.put("name", new String("K Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
 		htblColNameValue.clear();
 		htblColNameValue.put("id", new Integer(600));
-		htblColNameValue.put("name", new String("A Noor"));
+		htblColNameValue.put("name", new String("E Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(650));
+		htblColNameValue.put("name", new String("D Noor"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		// ht.clear();
+		// key = "name";
+		// ht.put("id", "java.lang.Integer");
+		// ht.put("name", "java.lang.String");
+		// strTableName = "second testing!!";
+		//
+		// createTable(strTableName, key, ht);
+		//
 		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(800));
-		// htblColNameValue.put("name", new String("Z Noor"));
-		// deleteFromTable(strTableName, htblColNameValue);
-
-		ht.clear();
-		key = "name";
-		ht.put("id", "java.lang.Integer");
-		ht.put("name", "java.lang.String");
-		strTableName = "second testing!!";
-
-		createTable(strTableName, key, ht);
-
-		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(1));
-		htblColNameValue.put("name", new String("Catnis"));
-		insertIntoTable(strTableName, htblColNameValue);
-
-		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(2));
-		htblColNameValue.put("name", new String("Badr"));
-		insertIntoTable(strTableName, htblColNameValue);
-
-		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(3));
-		htblColNameValue.put("name", new String("Ahmed"));
-		insertIntoTable(strTableName, htblColNameValue);
-
-		htblColNameValue.clear();
-		htblColNameValue.put("id", new Integer(123456789));
-		htblColNameValue.put("name", new String("UPDATED"));
-		updateTable(strTableName, "Ahmed", htblColNameValue);
+		// htblColNameValue.put("id", new Integer(1));
+		// htblColNameValue.put("name", new String("Catnis"));
+		// insertIntoTable(strTableName, htblColNameValue);
+		//
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(2));
+		// htblColNameValue.put("name", new String("Badr"));
+		// insertIntoTable(strTableName, htblColNameValue);
+		//
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(3));
+		// htblColNameValue.put("name", new String("Ahmed"));
+		// insertIntoTable(strTableName, htblColNameValue);
+		//
+		// System.out.println(".................................................");
+		// createBitmapIndex("second testing!!", "name");
+		//
+		// htblColNameValue.clear();
+		// htblColNameValue.put("id", new Integer(123456789));
+		// htblColNameValue.put("name", new String("UPDATED"));
+		// updateTable(strTableName, "Ahmed", htblColNameValue);
 
 		System.out.println(".................................................");
-		createBitmapIndex(strTableName, "name");
+		createBitmapIndex("testing!!", "name");
 
-		System.out.println(".................................................");
-		createBitmapIndex("testing!!", "id");
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(650));
+		htblColNameValue.put("name", new String("D Noor"));
+		deleteFromTable("testing!!", htblColNameValue);
+
+		BitmapIndex.printIndex("testing!!");
 	}
 }

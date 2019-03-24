@@ -29,7 +29,7 @@ public class BitmapPage implements Serializable {
 		this.tableName = tableName;
 
 		this.id = num;
-		this.file = new File("data/bitmapFile " + this.id);
+		this.file = new File("data/" + tableName + " bitmap page " + this.id);
 	}
 
 	public void writePageFile() {

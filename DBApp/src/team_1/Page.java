@@ -32,7 +32,7 @@ public class Page implements Serializable {
 		this.count = 0;
 		this.id = id;
 		// every time I create a new page, I need to create a new file to reflect this
-		this.file = new File("data/file " + this.id);
+		this.file = new File("data/" + tableName + " page " + this.id);
 	}
 
 	public static String readFile() {
@@ -99,7 +99,8 @@ public class Page implements Serializable {
 
 	public void renamePage(int num) {
 		this.id = num;
-		this.file.renameTo(new File("data/file " + this.id));
+		this.file = new File("data/" + this.tableName + " page " + this.id);
+
 		writePageFile();
 	}
 

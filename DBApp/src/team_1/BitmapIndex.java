@@ -1,9 +1,13 @@
 package team_1;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
@@ -22,17 +26,54 @@ public class BitmapIndex implements Serializable {
 		this.tableName = tableName;
 		this.colName = colName;
 
-		// initialize the file the index points to INSIDE DATA Folder
-		this.file = new File(Table.getDirectoryPath() + "/data/" + "bitmap index on " + colName + " in " + tableName);
+		// this section of code is concerned of editing the metadata.csv file to show
+		// changes of creating a bitmap index
+		BufferedReader in = null;
+		PrintWriter out = null;
+		try {
+			String path = Table.getDirectoryPath();
+			in = new BufferedReader(new FileReader(path + "/data/metadata.csv"));
+			File f = new File(path + "/data/metadata2.csv");
+			out = new PrintWriter(new FileWriter(f, true));
+			String line = in.readLine();
+			while (line != null) {
+				String[] parts = line.split(", ");
+				if (parts[0].equals(tableName) && parts[1].equals(colName))
+					out.write(parts[0] + ", " + parts[1] + ", " + parts[2] + ", " + parts[3] + ", True");
+				else
+					out.write(line);
+				out.write('\n');
+				line = in.readLine();
+			}
+			in.close();
+			out.close();
+			File metadata = new File(path + "/data/metadata.csv");
+			metadata.delete();
+			f.renameTo(metadata);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// initialize the file this bitmap index points to INSIDE DATA Folder
+		this.file = new File(Table.getDirectoryPath() + "/data/" + "BITMAP INDEX on " + colName + " on " + tableName);
 
 		Vector<Object> vector = createDenseIndexArray(tableName, colName);
-		System.out.println(vector);
+		System.out.println("vector of unique values: " + vector);
 		vector = sortTheValues(vector); // the vector is now sorted!
-		System.out.println(vector);
+		System.out.println("vector of unique AND sorted values: " + vector);
 		Vector<Index> indexVector = setBitmap(tableName, colName, vector);
 
+		// add an empty bitmap page element to the vector of pages
 		this.pages.addElement(new BitmapPage(tableName, 1));
+		fillThePages(indexVector);
 
+		writeIndexFile();
+
+		deleteTheRest(tableName, pages.size() + 1);
+	}
+
+	// this fills the pages vector of this class by creating many bitmap pages
+	public void fillThePages(Vector<Index> indexVector) {
 		int p = 0; // counter for the number of pages
 		// this loop just keeps adding indices to the bitmap index using
 		// the vector v which is already sorted
@@ -42,67 +83,79 @@ public class BitmapIndex implements Serializable {
 			if (!bp.isFull())
 				bp.addIndexToPage(index);
 			else {
-				this.pages.addElement(new BitmapPage(tableName, getNumberOfFiles() + 1));
+				this.pages.addElement(new BitmapPage(tableName, pages.size() + 1));
 				p++;
 				this.pages.get(p).addIndexToPage(index);
 			}
 		}
-
-		writeIndexFile();
 	}
 
-	public Vector<Object> createDenseIndexArray(String tableName, String colName) {
+	// returns an array of unique values in colName, in tableName
+	public static Vector<Object> createDenseIndexArray(String tableName, String colName) {
 		Vector<Object> a = new Vector<Object>();
 		File dir = new File(Table.getDirectoryPath() + "/data/");
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
+		// System.out.println("length of the file name: " + file.getName().length());
+		// System.out.println("length: " + (tableName.length() + 7));
+		// System.out.println(file.getName().substring(0, (tableName.length() + 7)));
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 4).equals("file")) {
-				// make sure to only check files!
-				Page p = (Page) Table.deSerialization(file);
-				if (p.tableName.equals(tableName)) // if the page belongs to this table
-					for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
-						Tuple t = p.getTuples().get(i);
-						for (int j = 0; j < t.getAttributes().size(); j++) { // loop over all attributes in THIS tuple
-							Attribute x = t.getAttributes().get(j);
-							if (x.name.equals(colName))
-								// if the attribute name is the colName i want to create bitmap index on, add it
-								// to the returned array of values
-								// also check if this value was added before as we only need unique values!
-								if (!a.contains(x.value))
-									a.add(x.value);
+			if (file.getName().length() >= tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) { // make sure to
+																										// only check
+																										// files
+					Page p = (Page) Table.deSerialization(file);
+					if (p.tableName.equals(tableName)) // if the page belongs to this table
+						for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
+							Tuple t = p.getTuples().get(i);
+							for (int j = 0; j < t.getAttributes().size(); j++) { // loop over all attributes in THIS
+																					// tuple
+								Attribute x = t.getAttributes().get(j);
+								if (x.name.equals(colName))
+									// if the attribute name is the colName i want to create bitmap index on, add it
+									// to the returned array of values
+									// also check if this value was added before as we only need unique values!
+									if (!a.contains(x.value))
+										a.add(x.value);
+							}
 						}
-					}
-			}
+				}
 		return a;
 	}
 
-	public Vector<Index> setBitmap(String tableName, String colName, Vector<Object> vector) {
+	// returns an array of indices that have their bitmaps set, which will be used
+	// to fill bitmap pages
+	public static Vector<Index> setBitmap(String tableName, String colName, Vector<Object> vector) {
 		Vector<Index> indexVector = new Vector<Index>();
 		Vector<Object> a = new Vector<Object>();
 		File dir = new File(Table.getDirectoryPath() + "/data/");
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
-		// The whole purpose of this is to create a vector of objects that has ALL
+		// The whole purpose of this section is to create a vector of objects that has
+		// ALL
 		// values of the respective column
 		for (File file : directoryListing)
-			if (file.getName().substring(0, 4).equals("file")) {
-				// make sure to only check files!
-				Page p = (Page) Table.deSerialization(file);
-				if (p.tableName.equals(tableName)) // if the page belongs to this table
-					for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
-						Tuple t = p.getTuples().get(i);
-						for (int j = 0; j < t.getAttributes().size(); j++) {
-							Attribute x = t.getAttributes().get(j);
-							if (x.name.equals(colName)) {
-								System.out.print(x.value + " ");
-								a.add(x.value);
+			if (file.getName().length() >= tableName.length() + 5)
+				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) { // make sure to
+																										// only check
+																										// files
+					Page p = (Page) Table.deSerialization(file);
+					if (p.tableName.equals(tableName)) // if the page belongs to this table
+						for (int i = 0; i < p.getTuples().size(); i++) { // loop over all tuples in page
+							Tuple t = p.getTuples().get(i);
+							for (int j = 0; j < t.getAttributes().size(); j++) {
+								Attribute x = t.getAttributes().get(j);
+								if (x.name.equals(colName)) {
+									System.out.print(x.value + "..");
+									a.add(x.value);
+								}
 							}
 						}
-					}
-			}
+				}
 
 		System.out.println();
+		// loops over every single unique value and builds its index by looping on all
+		// values of this column each time and either adding a 0 or a 1
 		for (Object o1 : vector) {
 			System.out.println("the element: " + o1.toString());
 			Index x;
@@ -128,7 +181,9 @@ public class BitmapIndex implements Serializable {
 		return indexVector;
 	}
 
-	public Vector<Object> sortTheValues(Vector<Object> a) {
+	// return an array of sorted objects that we will then create the index objects
+	// on
+	public static Vector<Object> sortTheValues(Vector<Object> a) {
 		Vector<Object> result = new Vector<Object>();
 
 		if (a.firstElement().getClass().getName().equals("java.lang.Integer")) { // if the elements are of type Integer
@@ -181,16 +236,18 @@ public class BitmapIndex implements Serializable {
 	}
 
 	// counts the number of files in the directory /data
-	public int getNumberOfFiles() {
+	public static int getNumberOfFiles(String tableName) {
 		File dir = new File(Table.getDirectoryPath() + "/data");
 		File[] directoryListing = dir.listFiles();
 		int count = 0;
 		for (File file : directoryListing)
-			if (file.getName().length() > 10 && file.getName().substring(0, 10).equals("bitmapFile"))
-				count++;
+			if (file.getName().length() > tableName.length() + 12)
+				if (file.getName().substring(0, tableName.length() + 12).equals(tableName + " bitmap page"))
+					count++;
 		return count;
 	}
 
+	// writes the bitmapindex on disk
 	public void writeIndexFile() {
 		try {
 			FileOutputStream fileOut = new FileOutputStream(this.file);
@@ -201,6 +258,63 @@ public class BitmapIndex implements Serializable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	// this method re-creates ALL indices of TableName on each alteration, whenever
+	// it's called.
+	public static void updateBitmapIndex(String tableName) {
+		File dir = new File(Table.getDirectoryPath() + "/data/");
+		File[] directoryListing = dir.listFiles();
+		// loop over every file in the current directory
+		for (File file : directoryListing)
+			if (file.getName().length() > 12)
+				if (file.getName().substring(0, 12).equals("BITMAP INDEX")) {
+					String[] parts = file.getName().split(" on ");
+					String colName = parts[1];
+					String tableNameOfFile = parts[2];
+					if (tableNameOfFile.equals(tableName)) {
+						System.out.println("********************** updating!!!! ********************");
+						file.delete();
+						new BitmapIndex(tableName, colName);
+					}
+
+				}
+	}
+
+	// this method take a table name, and an int, on which it will delete the
+	// remaining bitmap index files on disk that come after this int value. very
+	// useful when updating the bitmap index after a delete was made
+	public static void deleteTheRest(String tableName, int c) {
+		File dir = new File(Table.getDirectoryPath() + "/data");
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (file.getName().length() > tableName.length() + 12)
+				if (file.getName().substring(0, tableName.length() + 12).equals(tableName + " bitmap page")) {
+					String[] parts = file.getName().split("page ");
+					Integer n = Integer.parseInt(parts[1]);
+					if (n >= c)
+						if (file.delete())
+							System.out.println("Sorry, deleting bitmap file of page: " + n);
+				}
+
+	}
+
+	public static void printIndex(String tableName) {
+		System.out.println(
+				"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		File dir = new File(Table.getDirectoryPath() + "/data");
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (file.getName().length() > tableName.length() + 12)
+				if (file.getName().substring(0, tableName.length() + 12).equals(tableName + " bitmap page")) {
+					BitmapPage bp = (BitmapPage) Table.deSerialization(file);
+					if (bp.tableName.equals(tableName))
+						for (Index i : bp.indices)
+							System.out.println(i.value + " = " + i.bitmap);
+
+				}
+		System.out.println(
+				"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 	}
 
 }
