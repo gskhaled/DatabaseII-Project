@@ -125,36 +125,36 @@ public class DBApp {
 		htblColNameValue.put("name", new String("D Noor"));
 		insertIntoTable(strTableName, htblColNameValue);
 
-		// ht.clear();
-		// key = "name";
-		// ht.put("id", "java.lang.Integer");
-		// ht.put("name", "java.lang.String");
-		// strTableName = "second testing!!";
-		//
-		// createTable(strTableName, key, ht);
-		//
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(1));
-		// htblColNameValue.put("name", new String("Catnis"));
-		// insertIntoTable(strTableName, htblColNameValue);
-		//
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(2));
-		// htblColNameValue.put("name", new String("Badr"));
-		// insertIntoTable(strTableName, htblColNameValue);
-		//
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(3));
-		// htblColNameValue.put("name", new String("Ahmed"));
-		// insertIntoTable(strTableName, htblColNameValue);
-		//
-		// System.out.println(".................................................");
-		// createBitmapIndex("second testing!!", "name");
-		//
-		// htblColNameValue.clear();
-		// htblColNameValue.put("id", new Integer(123456789));
-		// htblColNameValue.put("name", new String("UPDATED"));
-		// updateTable(strTableName, "Ahmed", htblColNameValue);
+		ht.clear();
+		key = "name";
+		ht.put("id", "java.lang.Integer");
+		ht.put("name", "java.lang.String");
+		strTableName = "second testing!!";
+
+		createTable(strTableName, key, ht);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(1));
+		htblColNameValue.put("name", new String("Catnis"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(2));
+		htblColNameValue.put("name", new String("Badr"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(3));
+		htblColNameValue.put("name", new String("Ahmed"));
+		insertIntoTable(strTableName, htblColNameValue);
+
+		System.out.println(".................................................");
+		createBitmapIndex("second testing!!", "name");
+
+		htblColNameValue.clear();
+		htblColNameValue.put("id", new Integer(123456789));
+		htblColNameValue.put("name", new String("UPDATED"));
+		updateTable(strTableName, "Ahmed", htblColNameValue);
 
 		System.out.println(".................................................");
 		createBitmapIndex("testing!!", "name");
