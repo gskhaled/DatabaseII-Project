@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Vector;
 
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "static-access" })
 public class BitmapIndex implements Serializable {
 
 	transient Vector<BitmapPage> pages;
@@ -32,12 +32,17 @@ public class BitmapIndex implements Serializable {
 		PrintWriter out = null;
 		try {
 			String path = Table.getDirectoryPath();
+			// initializes in to be the metadata original file
 			in = new BufferedReader(new FileReader(path + "/data/metadata.csv"));
+			// creates a new temporary file called metadata2 that i copy everything to,
+			// except the part that i want to change
 			File f = new File(path + "/data/metadata2.csv");
+			// true means to append the file, not rewrite it
 			out = new PrintWriter(new FileWriter(f, true));
 			String line = in.readLine();
 			while (line != null) {
 				String[] parts = line.split(", ");
+				// found the section i want to change
 				if (parts[0].equals(tableName) && parts[1].equals(colName))
 					out.write(parts[0] + ", " + parts[1] + ", " + parts[2] + ", " + parts[3] + ", True");
 				else
@@ -47,8 +52,10 @@ public class BitmapIndex implements Serializable {
 			}
 			in.close();
 			out.close();
+			// delete the original metadata
 			File metadata = new File(path + "/data/metadata.csv");
 			metadata.delete();
+			// rename metadata2 to metadata ;)
 			f.renameTo(metadata);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -57,10 +64,16 @@ public class BitmapIndex implements Serializable {
 		// initialize the file this bitmap index points to INSIDE DATA Folder
 		this.file = new File(Table.getDirectoryPath() + "/data/" + "BITMAP INDEX on " + colName + " on " + tableName);
 
+		// i will already need a vector that has all the values in this table
 		Vector<Object> vector = createDenseIndexArray(tableName, colName);
 		System.out.println("vector of unique values: " + vector);
-		vector = sortTheValues(vector); // the vector is now sorted!
-		System.out.println("vector of unique AND sorted values: " + vector);
+
+		// if this column is the primary key then i don't need to sort
+		if (!isClusteringKey(tableName, colName)) {
+			vector = sortTheValues(vector); // the vector is now sorted!
+			System.out.println("vector of unique AND sorted values: " + vector);
+		}
+
 		Vector<Index> indexVector = setBitmap(tableName, colName, vector);
 
 		// add an empty bitmap page element to the vector of pages
@@ -92,13 +105,10 @@ public class BitmapIndex implements Serializable {
 
 	// returns an array of unique values in colName, in tableName
 	public static Vector<Object> createDenseIndexArray(String tableName, String colName) {
-		Vector<Object> a = new Vector<Object>();
+		Vector<Object> uniqueValues = new Vector<Object>();
 		File dir = new File(Table.getDirectoryPath() + "/data/");
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
-		// System.out.println("length of the file name: " + file.getName().length());
-		// System.out.println("length: " + (tableName.length() + 7));
-		// System.out.println(file.getName().substring(0, (tableName.length() + 7)));
 		for (File file : directoryListing)
 			if (file.getName().length() >= tableName.length() + 5)
 				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) { // make sure to
@@ -115,12 +125,12 @@ public class BitmapIndex implements Serializable {
 									// if the attribute name is the colName i want to create bitmap index on, add it
 									// to the returned array of values
 									// also check if this value was added before as we only need unique values!
-									if (!a.contains(x.value))
-										a.add(x.value);
+									if (!uniqueValues.contains(x.value))
+										uniqueValues.add(x.value);
 							}
 						}
 				}
-		return a;
+		return uniqueValues;
 	}
 
 	// returns an array of indices that have their bitmaps set, which will be used
@@ -132,8 +142,8 @@ public class BitmapIndex implements Serializable {
 		File[] directoryListing = dir.listFiles();
 		// loop over all files in the directory
 		// The whole purpose of this section is to create a vector of objects that has
-		// ALL
-		// values of the respective column
+		// ALL values of the respective column
+		System.out.print("All values: ");
 		for (File file : directoryListing)
 			if (file.getName().length() >= tableName.length() + 5)
 				if (file.getName().substring(0, tableName.length() + 5).equals(tableName + " page")) { // make sure to
@@ -146,7 +156,7 @@ public class BitmapIndex implements Serializable {
 							for (int j = 0; j < t.getAttributes().size(); j++) {
 								Attribute x = t.getAttributes().get(j);
 								if (x.name.equals(colName)) {
-									System.out.print(x.value + "..");
+									System.out.print(x.value + ".. ");
 									a.add(x.value);
 								}
 							}
@@ -159,14 +169,16 @@ public class BitmapIndex implements Serializable {
 		for (Object o1 : vector) {
 			System.out.println("the element: " + o1.toString());
 			Index x;
-			if (o1.getClass().getName().equals("java.lang.Integer"))
-				x = new Index((Integer) o1);
-			else if (o1.getClass().getName().equals("java.lang.String"))
-				x = new Index((String) o1);
-			else if (o1.getClass().getName().equals("java.lang.Double"))
-				x = new Index((Double) o1);
-			else
-				x = new Index((Date) o1);
+			x = new Index(o1);
+			// redundant...
+			// if (o1.getClass().getName().equals("java.lang.Integer"))
+			// x = new Index((Integer) o1);
+			// else if (o1.getClass().getName().equals("java.lang.String"))
+			// x = new Index((String) o1);
+			// else if (o1.getClass().getName().equals("java.lang.Double"))
+			// x = new Index((Double) o1);
+			// else
+			// x = new Index((Date) o1);
 
 			for (Object o2 : a) {
 				if (o1.equals(o2))
@@ -184,7 +196,7 @@ public class BitmapIndex implements Serializable {
 	// return an array of sorted objects that we will then create the index objects
 	// on
 	public static Vector<Object> sortTheValues(Vector<Object> a) {
-		Vector<Object> result = new Vector<Object>();
+		Vector<Object> sortedVector = new Vector<Object>();
 
 		if (a.firstElement().getClass().getName().equals("java.lang.Integer")) { // if the elements are of type Integer
 			Vector<Integer> vector = new Vector<Integer>();
@@ -195,8 +207,8 @@ public class BitmapIndex implements Serializable {
 			Collections.sort(vector);
 			// now return the ints to objects and return this vector of objects
 			for (Integer i : vector)
-				result.add(i);
-			return result;
+				sortedVector.add(i);
+			return sortedVector;
 		} else if (a.firstElement().getClass().getName().equals("java.lang.String")) { // if the elements are of type
 																						// String
 			Vector<String> vector = new Vector<String>();
@@ -207,8 +219,8 @@ public class BitmapIndex implements Serializable {
 			Collections.sort(vector);
 			// now return the strings to objects and return this vector of objects
 			for (String s : vector)
-				result.add(s);
-			return result;
+				sortedVector.add(s);
+			return sortedVector;
 		} else if (a.firstElement().getClass().getName().equals("java.lang.Double")) { // if the elements are of type
 																						// Double
 			Vector<Double> vector = new Vector<Double>();
@@ -219,8 +231,8 @@ public class BitmapIndex implements Serializable {
 			Collections.sort(vector);
 			// now return the doubles to objects and return this vector of objects
 			for (Double d : vector)
-				result.add(d);
-			return result;
+				sortedVector.add(d);
+			return sortedVector;
 		} else { // else the elements are of type Date
 			Vector<Date> vector = new Vector<Date>();
 			// loop to empty vector of objects into a vector of dates
@@ -230,8 +242,8 @@ public class BitmapIndex implements Serializable {
 			Collections.sort(vector);
 			// now return the dates to objects and return this vector of objects
 			for (Date d : vector)
-				result.add(d);
-			return result;
+				sortedVector.add(d);
+			return sortedVector;
 		}
 	}
 
@@ -273,7 +285,9 @@ public class BitmapIndex implements Serializable {
 					String colName = parts[1];
 					String tableNameOfFile = parts[2];
 					if (tableNameOfFile.equals(tableName)) {
-						System.out.println("********************** updating!!!! ********************");
+						System.out.println(
+								"**********************Updating a bitmap Index: " + colName + "**********************");
+						// delete the old one, and recreate a new one
 						file.delete();
 						new BitmapIndex(tableName, colName);
 					}
@@ -299,6 +313,7 @@ public class BitmapIndex implements Serializable {
 
 	}
 
+	// basically the toString method of this class
 	public static void printIndex(String tableName) {
 		System.out.println(
 				"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -307,7 +322,7 @@ public class BitmapIndex implements Serializable {
 		for (File file : directoryListing)
 			if (file.getName().length() > tableName.length() + 12)
 				if (file.getName().substring(0, tableName.length() + 12).equals(tableName + " bitmap page")) {
-					BitmapPage bp = (BitmapPage) Table.deSerialization(file);
+					BitmapPage bp = (BitmapPage) BitmapPage.deSerialization(file);
 					if (bp.tableName.equals(tableName))
 						for (Index i : bp.indices)
 							System.out.println(i.value + " = " + i.bitmap);
@@ -317,4 +332,15 @@ public class BitmapIndex implements Serializable {
 				"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 	}
 
+	public static boolean isClusteringKey(String tableName, String colName) {
+		File dir = new File(Table.getDirectoryPath() + "/data");
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (file.getName().equals(tableName)) {
+				Table t = (Table) Table.deSerialization(file);
+				if (t.key.equals(colName))
+					return true;
+			}
+		return false;
+	}
 }
