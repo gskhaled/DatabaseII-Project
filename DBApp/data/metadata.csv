@@ -1,4 +1,3 @@
-testing!!, name, java.lang.String, False, True
+testing!!, gpa, java.lang.Double, False, True
+testing!!, name, java.lang.String, False, False
 testing!!, id, java.lang.Integer, True, False
-second testing!!, name, java.lang.String, True, True
-second testing!!, id, java.lang.Integer, False, False

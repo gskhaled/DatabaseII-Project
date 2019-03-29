@@ -14,8 +14,12 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Vector;
 
@@ -619,6 +623,155 @@ public class Table implements Serializable {
 				}
 		System.out.println(
 				"############################################################################################");
+	}
+
+	public static Iterator<Tuple> selectFromTable(SQLTerm[] arrSQLTerms, String[] starOperators) {
+		ArrayList<Tuple> resultSet = new ArrayList<Tuple>();
+
+		if (arrSQLTerms.length != starOperators.length + 1) // when there is an incorrect call to this method
+			return null;
+
+		// filling up a queue of terms and operators
+		Queue<SQLTerm> terms = new LinkedList<SQLTerm>();
+		Queue<String> operators = new LinkedList<String>();
+		for (SQLTerm s : arrSQLTerms)
+			terms.add(s);
+		for (String s : starOperators)
+			operators.add(s);
+
+		SQLTerm first = terms.remove();
+		File dir = new File(Table.getDirectoryPath() + "/data");
+		File[] directoryListing = dir.listFiles();
+		for (File file : directoryListing)
+			if (file.getName().length() > first._strTableName.length() + 5) {
+				if (file.getName().substring(0, first._strTableName.length() + 5)
+						.equals(first._strTableName + " page")) {
+					Page p = (Page) Table.deSerialization(file);
+					if (p.tableName.equals(first._strTableName))
+						for (Tuple t : p.getTuples())
+							if (satisfiesCondition(t, first._strColName, first._strOperator, first._objValue))
+								resultSet.add(t); // resultSet now contains ALL the tuples that satisfy THIS first
+													// condition
+				}
+			}
+
+		// if i had only one term i.e one condition to satisfy i should exit
+		if (terms.isEmpty())
+			return resultSet.iterator();
+
+		// the second sqlterm to satisfy
+		SQLTerm second = terms.remove();
+		String op = operators.remove();
+
+		if (op.equals("AND")) { // further filter resultSet based on the second SQLTerm
+			for (int i = 0; i < resultSet.size(); i++) {
+				Tuple t = resultSet.get(i);
+				if (!satisfiesCondition(t, second._strColName, second._strOperator, second._objValue)) {
+					resultSet.remove(i);
+					i--;
+				}
+			}
+		} else if (op.equals("OR")) { // add to resultSet based on the second SQLTerm the tuples that satisfy
+			for (File file : directoryListing)
+				if (file.getName().length() > second._strTableName.length() + 5) {
+					if (file.getName().substring(0, second._strTableName.length() + 5)
+							.equals(second._strTableName + " page")) {
+						Page p = (Page) Table.deSerialization(file);
+						if (p.tableName.equals(second._strTableName))
+							for (Tuple t : p.getTuples())
+								if (satisfiesCondition(t, second._strColName, second._strOperator, second._objValue))
+									if (!wasInsertedBefore(resultSet, t))
+										resultSet.add(t); // resultSet now contains ALL the tuples that satisfy BOTH
+															// conditions
+					}
+				}
+		}
+
+		// filter according to the remaining terms!!
+		for (SQLTerm sqlTerm : terms) {// for all terms in the queue..
+			op = operators.remove(); // remove an operator and apply the term accordingly
+			if (op.equals("AND")) // means, further filter the result set again (resultSet)
+				for (int i = 0; i < resultSet.size(); i++) {
+					Tuple t = resultSet.get(i);
+					if (!satisfiesCondition(t, sqlTerm._strColName, sqlTerm._strOperator, sqlTerm._objValue)) {
+						resultSet.remove(i);
+						i--;
+					}
+				}
+			else if (op.equals("OR")) // means to add more tuples to this result set
+				for (File file : directoryListing)
+					if (file.getName().length() > sqlTerm._strTableName.length() + 5) {
+						if (file.getName().substring(0, sqlTerm._strTableName.length() + 5)
+								.equals(sqlTerm._strTableName + " page")) {
+							Page p = (Page) Table.deSerialization(file);
+							if (p.tableName.equals(sqlTerm._strTableName))
+								for (Tuple t : p.getTuples())
+									if (satisfiesCondition(t, sqlTerm._strColName, sqlTerm._strOperator,
+											sqlTerm._objValue))
+										if (!wasInsertedBefore(resultSet, t))
+											resultSet.add(t); // resultSet now contains ALL the tuples that satisfy one
+																// more
+																// condition
+						}
+					}
+		}
+		// once done......
+		return resultSet.iterator();
+	}
+
+	public static boolean satisfiesCondition(Tuple t, String colName, String operator, Object objValue) {
+		for (Attribute a : t.getAttributes())
+			if (a.name.equals(colName))
+				switch (operator) {
+
+				case "=":
+					return a.value.equals(objValue);
+
+				case "!=":
+					return !a.value.equals(objValue);
+
+				case ">":
+					if (objValue.getClass().getName().equals("java.lang.Integer"))
+						return (Integer) a.value > (Integer) objValue;
+					else if (objValue.getClass().getName().equals("java.lang.Double"))
+						return (Double) a.value > (Double) objValue;
+
+				case ">=":
+					if (objValue.getClass().getName().equals("java.lang.Integer"))
+						return (Integer) a.value > (Integer) objValue || a.value.equals(objValue);
+					else if (objValue.getClass().getName().equals("java.lang.Double"))
+						return (Double) a.value > (Double) objValue || a.value.equals(objValue);
+
+				case "<":
+					if (objValue.getClass().getName().equals("java.lang.Integer"))
+						return (Integer) a.value < (Integer) objValue;
+					else if (objValue.getClass().getName().equals("java.lang.Double"))
+						return (Double) a.value < (Double) objValue;
+
+				case "<=":
+					if (objValue.getClass().getName().equals("java.lang.Integer"))
+						return (Integer) a.value < (Integer) objValue || a.value.equals(objValue);
+					else if (objValue.getClass().getName().equals("java.lang.Double"))
+						return (Double) a.value < (Double) objValue || a.value.equals(objValue);
+
+				}
+
+		// if (operator.equals("="))
+		// return a.value.equals(objValue);
+		// if (operator.equals(">")) {
+		// if (objValue.getClass().getName().equals("java.lang.Integer"))
+		// return (Integer) a.value > (Integer) objValue;
+		// else if (objValue.getClass().getName().equals("java.lang.Double"))
+		// return (Double) a.value > (Double) objValue;
+		// }
+		return false;
+	}
+
+	public static boolean wasInsertedBefore(ArrayList<Tuple> resultSet, Tuple tuple) {
+		for (Tuple t : resultSet)
+			if (equals(t.getAttributes(), tuple.getAttributes()))
+				return true;
+		return false;
 	}
 
 	// public void addBitmapIndex(String tableName, String colName) {
